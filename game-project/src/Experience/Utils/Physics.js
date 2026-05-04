@@ -13,7 +13,7 @@ export default class Physics {
             this.defaultMaterial,
             this.defaultMaterial,
             {
-                friction: 0.4,
+                friction: 0.1,
                 restitution: 0.0
             }
         )
@@ -24,15 +24,16 @@ export default class Physics {
         this.obstacleMaterial = new CANNON.Material('obstacle')
         this.wallMaterial = new CANNON.Material('wall')
 
+        // ✅ Contactos más estables para evitar explosiones
         const robotObstacleContact = new CANNON.ContactMaterial(
             this.robotMaterial,
             this.obstacleMaterial,
             {
-                friction: 0.6,
+                friction: 0.1,
                 restitution: 0.0,
-                contactEquationStiffness: 1e9,
-                contactEquationRelaxation: 3,
-                frictionEquationStiffness: 1e7,
+                contactEquationStiffness: 1e7,
+                contactEquationRelaxation: 4,
+                frictionEquationStiffness: 1e6,
                 frictionEquationRelaxation: 3
             }
         )
@@ -42,15 +43,27 @@ export default class Physics {
             this.robotMaterial,
             this.wallMaterial,
             {
-                friction: 0.6,
+                friction: 0.1,
                 restitution: 0.0,
-                contactEquationStiffness: 1e9,
-                contactEquationRelaxation: 2,
-                frictionEquationStiffness: 1e7,
-                frictionEquationRelaxation: 2
+                contactEquationStiffness: 1e7,
+                contactEquationRelaxation: 4,
+                frictionEquationStiffness: 1e6,
+                frictionEquationRelaxation: 3
             }
         )
         this.world.addContactMaterial(robotWallContact)
+
+        this.floorMaterial = new CANNON.Material('floor')
+
+        const robotFloorContact = new CANNON.ContactMaterial(
+            this.robotMaterial,
+            this.floorMaterial,    // ← asignar este material al body del Floor
+            {
+                friction: 0.1,     // sin fricción horizontal → tú la controlas
+                restitution: 0.0
+            }
+        )
+        this.world.addContactMaterial(robotFloorContact)
     }
 
     update(delta) {

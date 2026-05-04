@@ -18,19 +18,19 @@ export default class KeyboardControls extends EventEmitter {
 
     setListeners() {
         window.addEventListener('keydown', (event) => {
-            if (event.key === 'w') this.keys.up = true
-            if (event.key === 's') this.keys.down = true
-            if (event.key === 'a') this.keys.left = true
-            if (event.key === 'd') this.keys.right = true
+            if (event.key === 'w' || event.key === 'ArrowUp') this.keys.up = true
+            if (event.key === 's' || event.key === 'ArrowDown') this.keys.down = true
+            if (event.key === 'a' || event.key === 'ArrowLeft') this.keys.left = true
+            if (event.key === 'd' || event.key === 'ArrowRight') this.keys.right = true
             if (event.code === 'Space') this.keys.space = true
             this.trigger('change', this.keys)
         })
 
         window.addEventListener('keyup', (event) => {
-            if (event.key === 'w') this.keys.up = false
-            if (event.key === 's') this.keys.down = false
-            if (event.key === 'a') this.keys.left = false
-            if (event.key === 'd') this.keys.right = false
+            if (event.key === 'w' || event.key === 'ArrowUp') this.keys.up = false
+            if (event.key === 's' || event.key === 'ArrowDown') this.keys.down = false
+            if (event.key === 'a' || event.key === 'ArrowLeft') this.keys.left = false
+            if (event.key === 'd' || event.key === 'ArrowRight') this.keys.right = false
             if (event.code === 'Space') this.keys.space = false
             this.trigger('change', this.keys)
         })

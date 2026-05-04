@@ -64,7 +64,9 @@ export default class Floor {
             shape: shape,
             position: new CANNON.Vec3(0, -this.size.height / 2, 0)
         })
-
+        
+        // ✅ Asignar material para buena fricción con robot
+        this.body.material = this.experience.physics.floorMaterial
         this.physics.world.addBody(this.body)
     }
 }

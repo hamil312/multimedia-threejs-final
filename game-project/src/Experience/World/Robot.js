@@ -13,6 +13,11 @@ export default class Robot {
         this.debug = this.experience.debug
         this.points = 0
 
+        this.verticalVelocity = 0
+        this.grounded = true
+        this.gravity = -20
+        this.groundY = 0.5
+
         this.setModel()
         this.setSounds()
         this.setPhysics()
@@ -21,8 +26,8 @@ export default class Robot {
 
     setModel() {
         this.model = this.resources.items.robotModel.scene
-        this.model.scale.set(0.3, 0.3, 0.3)
-        this.model.position.set(0, -0.1, 0) // Centrar respecto al cuerpo físico
+        this.model.scale.set(1, 1, 1)
+        this.model.position.set(0, 0, 0) // Centrar respecto al cuerpo físico
 
         this.group = new THREE.Group()
         this.group.add(this.model)
@@ -36,34 +41,34 @@ export default class Robot {
     }
 
     setPhysics() {
-        //const shape = new CANNON.Box(new CANNON.Vec3(0.3, 0.5, 0.3))
-        const shape = new CANNON.Sphere(0.4)
+        const radius = 0.35
+        const height = 0.5
 
         this.body = new CANNON.Body({
-            mass: 2,
-            shape: shape,
-            //position: new CANNON.Vec3(4, 1, 0), // Apenas sobre el piso real (que termina en y=0)
-            position: new CANNON.Vec3(0, 1.2, 0),
-            linearDamping: 0.05,
-            angularDamping: 0.9
+            mass: 1,                 
+            position: new CANNON.Vec3(-8, 0.5, 23),
+            fixedRotation: true,
+            linearDamping: 0.01, 
+            angularDamping: 0.1,
+            material: this.physics.robotMaterial
         })
 
-        this.body.angularFactor.set(0, 1, 0)
+        const cylinder = new CANNON.Cylinder(radius, radius, height, 8)
+        const sphereTop = new CANNON.Sphere(radius)
+        const sphereBottom = new CANNON.Sphere(radius)
 
-        // Estabilización inicial
-        this.body.velocity.setZero()
-        this.body.angularVelocity.setZero()
-        this.body.sleep()
-        this.body.material = this.physics.robotMaterial
-        //console.log(' Robot material:', this.body.material.name)
+        const q = new CANNON.Quaternion()
+        q.setFromEuler(0, 0, Math.PI / 2)
 
+        this.body.addShape(cylinder, new CANNON.Vec3(0, 0, 0), q)
+        this.body.addShape(sphereTop, new CANNON.Vec3(0, height / 2, 0))
+        this.body.addShape(sphereBottom, new CANNON.Vec3(0, -height / 2, 0))
 
         this.physics.world.addBody(this.body)
-        //console.log(' Posición inicial del robot:', this.body.position)
-        // Activar cuerpo después de que el mundo haya dado al menos un paso de simulación
-        setTimeout(() => {
-            this.body.wakeUp()
-        }, 100) // 100 ms ≈ 6 pasos de simulación si step = 1/60
+
+        // ✅ Sincronizar posición visual desde el inicio
+        this.group.position.set(-8, 0.5, 23)
+        this.body.allowSleep = false
     }
 
 
@@ -119,57 +124,11 @@ export default class Robot {
         this.animation.mixer.update(delta)
 
         const keys = this.keyboard.getState()
-        const moveForce = 80
         const turnSpeed = 2.5
         let isMoving = false
+        const maxSpeed = 10
 
-        // Limitar velocidad si es demasiado alta
-        const maxSpeed = 15
-        this.body.velocity.x = Math.max(Math.min(this.body.velocity.x, maxSpeed), -maxSpeed)
-        this.body.velocity.z = Math.max(Math.min(this.body.velocity.z, maxSpeed), -maxSpeed)
-
-
-        // Salto
-        // Dirección hacia adelante, independientemente del salto o movimiento
-        const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.group.quaternion)
-
-        // Salto
-        if (keys.space && this.body.position.y <= 0.51) {
-            this.body.applyImpulse(new CANNON.Vec3(forward.x * 0.5, 3, forward.z * 0.5))
-            this.animation.play('jump')
-            return
-        }
-        //No permitir que el robot salga del escenario
-        if (this.body.position.y > 10) {
-            console.warn(' Robot fuera del escenario. Reubicando...')
-            this.body.position.set(0, 1.2, 0)
-            this.body.velocity.set(0, 0, 0)
-        }
-
-
-        // Movimiento hacia adelante
-        if (keys.up) {
-            const forward = new THREE.Vector3(0, 0, 1)
-            forward.applyQuaternion(this.group.quaternion)
-            this.body.applyForce(
-                new CANNON.Vec3(forward.x * moveForce, 0, forward.z * moveForce),
-                this.body.position
-            )
-            isMoving = true
-        }
-
-        // Movimiento hacia atrás
-        if (keys.down) {
-            const backward = new THREE.Vector3(0, 0, -1)
-            backward.applyQuaternion(this.group.quaternion)
-            this.body.applyForce(
-                new CANNON.Vec3(backward.x * moveForce, 0, backward.z * moveForce),
-                this.body.position
-            )
-            isMoving = true
-        }
-
-        // Rotación
+        // 1. Rotación primero
         if (keys.left) {
             this.group.rotation.y += turnSpeed * delta
             this.body.quaternion.setFromEuler(0, this.group.rotation.y, 0)
@@ -178,20 +137,50 @@ export default class Robot {
             this.group.rotation.y -= turnSpeed * delta
             this.body.quaternion.setFromEuler(0, this.group.rotation.y, 0)
         }
+    
+        const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.group.quaternion)
 
+        // 3. Detectar si está en el suelo por velocidad vertical cercana a 0
+        //    (Cannon resuelve esto solo con el cuerpo dinámico)
+        const isGrounded = Math.abs(this.body.velocity.y) < 0.5
 
-        // Animaciones según movimiento
-        if (isMoving) {
-            if (this.animation.actions.current !== this.animation.actions.walking) {
-                this.animation.play('walking')
-            }
-        } else {
-            if (this.animation.actions.current !== this.animation.actions.idle) {
-                this.animation.play('idle')
-            }
+        // 4. Salto — Cannon aplica la gravedad, solo lanzamos impulso
+        if (keys.space && isGrounded) {
+            this.body.velocity.y = 10  // velocidad vertical directa
+            this.animation.play('jump')
         }
 
-        // Sincronización física → visual
+        // 5. Movimiento horizontal — sobreescribimos X y Z, Cannon conserva Y
+        if (keys.up) {
+            this.body.velocity.x = forward.x * maxSpeed
+            this.body.velocity.z = forward.z * maxSpeed
+            isMoving = true
+        } else if (keys.down) {
+            this.body.velocity.x = -forward.x * maxSpeed
+            this.body.velocity.z = -forward.z * maxSpeed
+            isMoving = true
+        } else {
+            // Frenar horizontalmente sin tocar Y (la gravedad sigue actuando)
+            this.body.velocity.x *= 0.85
+            this.body.velocity.z *= 0.85
+        }
+
+        // 6. Reubicación emergencia
+        if (this.body.position.y < -10 || this.body.position.y > 18) {
+            this.body.position.set(0, 1.2, 0)
+            this.body.velocity.set(0, 0, 0)
+        }
+
+        // 7. Animaciones
+        if (isMoving && this.animation.actions.current !== this.animation.actions.walking) {
+            this.animation.play('walking')
+        } else if (!isMoving
+            && this.animation.actions.current !== this.animation.actions.idle
+            && this.animation.actions.current !== this.animation.actions.jump) {
+            this.animation.play('idle')
+        }
+
+        // 8. Sincronizar visual con física (Cannon mueve el body, tú lees la posición)
         this.group.position.copy(this.body.position)
 
     }

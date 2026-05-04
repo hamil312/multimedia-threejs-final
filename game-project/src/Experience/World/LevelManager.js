@@ -2,7 +2,7 @@ export default class LevelManager {
     constructor(experience) {
         this.experience = experience;
         this.currentLevel = 1;  // Inicias en el nivel 1
-        this.totalLevels = 2;   // Total de niveles 
+        this.totalLevels = 5;   // Total de niveles 
     }
 
     nextLevel() {

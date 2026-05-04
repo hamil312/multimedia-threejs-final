@@ -33,6 +33,8 @@ export default class BlockPrefab {
             position: new CANNON.Vec3(position.x, position.y, position.z),
             linearDamping: 0.9
         })
+        // ✅ Asignar material al bloque para que colisione correctamente con el robot
+        body.material = this.physics.obstacleMaterial
         this.physics.world.addBody(body)
 
         // Guardar la relación para sincronizar

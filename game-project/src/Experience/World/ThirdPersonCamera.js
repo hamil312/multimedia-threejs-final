@@ -29,7 +29,7 @@ export default class ThirdPersonCamera {
         // Fijar cámara a una altura constante (no sigue saltos ni choques verticales)
         const cameraPosition = new THREE.Vector3(
             basePosition.x + direction.x * this.offset.z,
-            this.fixedY,
+            basePosition.y + direction.y * this.offset.z + this.fixedY,
             basePosition.z + direction.z * this.offset.z
         )
 
