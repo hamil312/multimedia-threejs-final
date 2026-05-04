@@ -71,7 +71,6 @@ export default class Robot {
         this.body.allowSleep = false
     }
 
-
     setSounds() {
         this.walkSound = new Sound('/sounds/robot/walking.mp3', { loop: true, volume: 0.5 })
         this.jumpSound = new Sound('/sounds/robot/jump.mp3', { volume: 0.8 })
@@ -82,10 +81,10 @@ export default class Robot {
         this.animation.mixer = new THREE.AnimationMixer(this.model)
 
         this.animation.actions = {}
-        this.animation.actions.dance = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[0])
-        this.animation.actions.death = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[1])
-        this.animation.actions.idle = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[2])
-        this.animation.actions.jump = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[3])
+        this.animation.actions.dance   = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[0])
+        this.animation.actions.death   = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[1])
+        this.animation.actions.idle    = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[2])
+        this.animation.actions.jump    = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[3])
         this.animation.actions.walking = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[10])
 
         this.animation.actions.current = this.animation.actions.idle
@@ -119,7 +118,10 @@ export default class Robot {
     }
 
     update() {
+        // Si el robot está muerto (body=null o animación death activa), no actualizar
+        if (!this.body) return
         if (this.animation.actions.current === this.animation.actions.death) return
+
         const delta = this.time.delta * 0.001
         this.animation.mixer.update(delta)
 
@@ -182,36 +184,29 @@ export default class Robot {
 
         // 8. Sincronizar visual con física (Cannon mueve el body, tú lees la posición)
         this.group.position.copy(this.body.position)
-
     }
 
-    // Método para mover el robot desde el exterior VR
     moveInDirection(dir, speed) {
-        if (!window.userInteracted || !this.experience.renderer.instance.xr.isPresenting) {
-            return
-        }
+        if (!window.userInteracted || !this.experience.renderer.instance.xr.isPresenting) return
 
-        // Si hay controles móviles activos
         const mobile = window.experience?.mobileControls
         if (mobile?.intensity > 0) {
             const dir2D = mobile.directionVector
             const dir3D = new THREE.Vector3(dir2D.x, 0, dir2D.y).normalize()
-
-            const adjustedSpeed = 250 * mobile.intensity // velocidad más fluida
+            const adjustedSpeed = 250 * mobile.intensity
             const force = new CANNON.Vec3(dir3D.x * adjustedSpeed, 0, dir3D.z * adjustedSpeed)
-
             this.body.applyForce(force, this.body.position)
 
             if (this.animation.actions.current !== this.animation.actions.walking) {
                 this.animation.play('walking')
             }
 
-            // Rotar suavemente en dirección de avance
             const angle = Math.atan2(dir3D.x, dir3D.z)
             this.group.rotation.y = angle
             this.body.quaternion.setFromEuler(0, this.group.rotation.y, 0)
         }
     }
+
     die() {
         if (this.animation.actions.current !== this.animation.actions.death) {
             this.animation.actions.current.fadeOut(0.2)
@@ -220,20 +215,65 @@ export default class Robot {
 
             this.walkSound.stop()
 
-            // 💥 Eliminar cuerpo del mundo para evitar errores
-            if (this.physics.world.bodies.includes(this.body)) {
+            if (this.body && this.physics.world.bodies.includes(this.body)) {
                 this.physics.world.removeBody(this.body)
             }
-            this.body = null  // prevenir referencias rotas
+            this.body = null
 
-            // Ajustes visuales (opcional)
             this.group.position.y -= 0.5
             this.group.rotation.x = -Math.PI / 2
 
-            console.log(' Robot ha muerto')
+            console.log('Robot ha muerto')
         }
     }
 
+    /**
+     * revive() — Revierte completamente los efectos de die().
+     * Llamar desde Experience.resetGameToFirstLevel() antes de loadLevel().
+     *
+     * Restaura:
+     *  - Postura visual del grupo (rotation.x y position.y)
+     *  - Cuerpo físico (lo recrea y lo añade al mundo)
+     *  - Animación a idle
+     *  - Puntos a 0
+     */
+    revive(spawnPosition = { x: -17, y: 1.5, z: -67 }) {
+        // 1. Restablecer postura visual
+        this.group.rotation.set(0, 0, 0)
+        this.group.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z)
 
+        // 2. Recrear cuerpo físico si fue eliminado por die()
+        if (!this.body) {
+            const shape = new CANNON.Sphere(0.4)
+            this.body = new CANNON.Body({
+                mass: 2,
+                shape,
+                position: new CANNON.Vec3(spawnPosition.x, spawnPosition.y, spawnPosition.z),
+                linearDamping: 0.05,
+                angularDamping: 0.9
+            })
+            this.body.angularFactor.set(0, 1, 0)
+            this.body.material = this.physics.robotMaterial
+            this.physics.world.addBody(this.body)
+        } else {
+            // Si el body sigue vivo (no llegó a morir del todo), solo reposicionarlo
+            this.body.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z)
+        }
 
+        this.body.velocity.set(0, 0, 0)
+        this.body.angularVelocity.set(0, 0, 0)
+        this.body.quaternion.setFromEuler(0, 0, 0)
+        this.body.wakeUp()
+
+        // 3. Volver a animación idle
+        const death = this.animation.actions.death
+        const idle  = this.animation.actions.idle
+        if (death) { death.stop(); death.reset() }
+        if (idle)  { idle.reset().play(); this.animation.actions.current = idle }
+
+        // 4. Limpiar puntos
+        this.points = 0
+
+        console.log('✅ Robot revivido en', spawnPosition)
+    }
 }

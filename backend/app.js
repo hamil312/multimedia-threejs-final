@@ -22,6 +22,8 @@ app.get('/', (req, res) => {
 // Rutas
 //app.use('/blocks', blockRoutes)
 app.use('/api/blocks', blockRoutes)
+const playerRoutes = require('./routes/playerRoutes')
+app.use('/api/players', playerRoutes)
 
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {

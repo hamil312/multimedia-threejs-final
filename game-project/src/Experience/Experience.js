@@ -26,29 +26,24 @@ export default class Experience {
     if (instance) return instance
     instance = this
 
-    // Global access
     window.experience = this
     this.canvas = _canvas
-
-    // Flag de interacción
     window.userInteracted = false
 
     // Core setup
-    this.debug = new Debug()
-    this.sizes = new Sizes()
-    this.time = new Time()
-    this.scene = new THREE.Scene()
-    this.physics = new Physics()
+    this.debug    = new Debug()
+    this.sizes    = new Sizes()
+    this.time     = new Time()
+    this.scene    = new THREE.Scene()
+    this.physics  = new Physics()
     this.debugger = cannonDebugger(this.scene, this.physics.world, { color: 0x00ff00 })
     this.keyboard = new KeyboardControls()
 
     this.scene.background = new THREE.Color('#87ceeb')
 
-    // Recursos
     this.resources = new Resources(sources)
 
     this.resources.on('ready', () => {
-      // Mostrar modal solo cuando los recursos estén listos
       this.modal.show({
         icon: '🚀',
         message: 'Recoge todas las monedas\n¡y evita los obstáculos!',
@@ -60,7 +55,6 @@ export default class Experience {
         ]
       })
 
-      // Ocultar precarga si existe
       const overlay = document.querySelector('.loader-overlay')
       if (overlay) {
         overlay.classList.add('fade-out')
@@ -68,39 +62,28 @@ export default class Experience {
       }
     })
 
-    
-    // Cámara y renderer
-    this.camera = new Camera(this)
+    this.camera   = new Camera(this)
     this.renderer = new Renderer(this)
 
-    // 🚀 Dolly para VR movement
     this.vrDolly = new THREE.Group()
     this.vrDolly.name = 'VR_DOLLY'
     this.vrDolly.add(this.camera.instance)
     this.scene.add(this.vrDolly)
 
-
-    // Socket
-    //this.socketManager = new SocketManager(this)
-
-    // Raycaster
     this.raycaster = new Raycaster(this)
 
-
-    // Modal y VR
     this.modal = new ModalManager({ container: document.body })
     this.vr = new VRIntegration({
-      renderer: this.renderer.instance,
-      scene: this.scene,
-      camera: this.camera.instance,
-      vrDolly: this.vrDolly,
+      renderer:     this.renderer.instance,
+      scene:        this.scene,
+      camera:       this.camera.instance,
+      vrDolly:      this.vrDolly,
       modalManager: this.modal,
-      experience: this
+      experience:   this
     })
 
-    // Menú
     this.menu = new CircularMenu({
-      container: document.body,
+      container:     document.body,
       vrIntegration: this.vr,
       onAudioToggle: () => this.world.toggleAudio(),
       onWalkMode: () => {
@@ -114,51 +97,36 @@ export default class Experience {
           document.exitFullscreen()
         }
       },
-      onCancelGame: () => this.tracker.handleCancelGame() // 🔴 aquí se integra la lógica central
+      onCancelGame: () => this.tracker.handleCancelGame()
     })
 
-    //Generar obstaculos
     this._startObstacleWaves()
 
-
-
-    // Activar tiempos
-    if (this.tracker) {
-      this.tracker.destroy()
-    }
-
+    if (this.tracker) this.tracker.destroy()
     this.tracker = new GameTracker({ modal: this.modal, menu: this.menu })
-
 
     // Mundo
     this.world = new World(this)
 
-    // Flag tercera persona
+    // ✅ Conectar menu con world para que los sliders de audio funcionen
+    this.menu._world = this.world
+
     this.isThirdPerson = false
-
-    // Iniciar loop adecuado
     this.startLoop()
-
-    // Resize
     this.sizes.on('resize', () => this.resize())
 
-    // Sonidos
     this.sounds = new Sounds({ time: this.time, debug: this.debug })
 
-    // Detectar gesto del usuario
-    window.addEventListener('click', this.handleFirstInteraction, { once: true })
+    window.addEventListener('click',      this.handleFirstInteraction, { once: true })
     window.addEventListener('touchstart', this.handleFirstInteraction, { once: true })
   }
 
-  //Control de audio
   handleFirstInteraction() {
     const ctx = Howler.ctx
     if (ctx && ctx.state === 'suspended') {
-      ctx.resume().then(() => {
-        console.log('🔊 AudioContext reanudado por interacción del usuario.')
-      }).catch((err) => {
-        console.warn('⚠️ Error reanudando AudioContext:', err)
-      })
+      ctx.resume()
+        .then(() => console.log('🔊 AudioContext reanudado por interacción del usuario.'))
+        .catch(err => console.warn('⚠️ Error reanudando AudioContext:', err))
     }
     window.userInteracted = true
   }
@@ -166,44 +134,38 @@ export default class Experience {
   resumeAudioContext() {
     const ctx = Howler.ctx
     if (ctx && ctx.state === 'suspended') {
-      ctx.resume().then(() => {
-        console.log('🔊 AudioContext reanudado manualmente')
-      }).catch((err) => {
-        console.warn('⚠️ Error reanudando AudioContext:', err)
-      })
+      ctx.resume()
+        .then(() => console.log('🔊 AudioContext reanudado manualmente'))
+        .catch(err => console.warn('⚠️ Error reanudando AudioContext:', err))
     }
   }
 
   toggleWalkMode() {
     this.isThirdPerson = !this.isThirdPerson
-
     const controls = this.camera.controls
-    const cam = this.camera.instance
+    const cam      = this.camera.instance
 
     if (this.isThirdPerson) {
       controls.enabled = false
       console.log('🟡 Tercera persona ON')
     } else {
-      controls.enabled = true
+      controls.enabled      = true
       controls.enableRotate = true
-      controls.enableZoom = true
-      controls.enablePan = false
+      controls.enableZoom   = true
+      controls.enablePan    = false
       controls.minPolarAngle = 0
       controls.maxPolarAngle = Math.PI * 0.9
-
       cam.position.set(12, 5, 10)
       cam.up.set(0, 1, 0)
       controls.target.set(0, 0, 0)
       cam.lookAt(controls.target)
       controls.update()
-
       console.log('🟢 Vista global restaurada')
     }
   }
 
   startLoop() {
     this.vr.setUpdateCallback((delta) => this.update(delta))
-
     this.time.on('tick', () => {
       if (!this.renderer.instance.xr.isPresenting) {
         const delta = this.time.delta * 0.001
@@ -221,18 +183,13 @@ export default class Experience {
     if (!this.isThirdPerson && !this.renderer.instance.xr.isPresenting) {
       this.camera.update()
     }
-
     if (this.renderer.instance.xr.isPresenting) {
       this.adjustCameraForVR()
     }
-
     this.world.update(delta)
     this.renderer.update()
     this.physics.update(delta)
-
     this.socketManager?.update()
-    //linea para activar el debugger
-    // if (this.debugger) this.debugger.update()
   }
 
   adjustCameraForVR() {
@@ -240,15 +197,13 @@ export default class Experience {
       const pos = this.world.robot.group.position
       this.camera.instance.position.copy(pos).add(new THREE.Vector3(0, 1.6, 0))
       this.camera.instance.lookAt(pos.clone().add(new THREE.Vector3(0, 1.6, -1)))
-      // console.log('🎯 Cámara ajustada a robot en VR')
     }
   }
 
-  //Generar olas de cubos
   _startObstacleWaves() {
     this.obstacleWaveCount = 10
-    this.maxObstacles = 50
-    this.currentObstacles = []
+    this.maxObstacles      = 50
+    this.currentObstacles  = []
     const delay = 30000
 
     const spawnWave = () => {
@@ -256,30 +211,19 @@ export default class Experience {
 
       for (let i = 0; i < this.obstacleWaveCount; i++) {
         const obstacle = this.raycaster.generateRandomObstacle?.()
-        if (obstacle) {
-          this.currentObstacles.push(obstacle)
-        }
+        if (obstacle) this.currentObstacles.push(obstacle)
       }
 
-      // Mantener máximo 50 obstáculos
       while (this.currentObstacles.length > this.maxObstacles) {
         const oldest = this.currentObstacles.shift()
-        if (oldest) {
-          // Usar el removedor centralizado para desregistrar tick y liberar recursos
-          this.raycaster._removeObstacle(oldest)
-        }
+        if (oldest) this.raycaster._removeObstacle(oldest)
       }
 
-      // Mantener constante el tamaño de la oleada para evitar crecimiento exponencial
-      // this.obstacleWaveCount += 10
       this.obstacleWaveTimeout = setTimeout(spawnWave, delay)
     }
 
-    // Inicia primera oleada tras 30s
     this.obstacleWaveTimeout = setTimeout(spawnWave, 30000)
   }
-
-
 
   destroy() {
     this.sizes.off('resize')
@@ -289,11 +233,10 @@ export default class Experience {
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose()
         if (Array.isArray(child.material)) {
-          child.material.forEach(mat => mat.dispose && mat.dispose())
+          child.material.forEach(mat => mat.dispose?.())
         } else {
           child.material.dispose?.()
         }
-
       }
     })
 
@@ -304,10 +247,11 @@ export default class Experience {
 
   startGame() {
     console.log('🎮 Juego iniciado')
-    this.isThirdPerson = true // ⬅️ asegurar el modo
+    this.isThirdPerson = true
     this.tracker.start()
     this._startObstacleWaves()
-    if (this.menu && this.menu.toggleButton && this.menu.toggleButton.style) {
+
+    if (this.menu?.toggleButton?.style) {
       this.menu.toggleButton.style.display = 'block'
     }
 
@@ -317,78 +261,103 @@ export default class Experience {
     console.log('🎮 Iniciando partida...')
   }
 
-
-
   resetGame() {
-    console.log('♻️ Reiniciando juego...')
-    // Notificar desconexión al servidor
+    console.log('♻️ Reiniciando juego completo...')
+
     this.socketManager?.socket?.disconnect()
+    if (this.menu)          this.menu.destroy()
+    if (this.tracker)       this.tracker.destroy()
+    if (this.socketManager) this.socketManager.destroy()
 
-    // Limpieza explícita del HUD
-    if (this.menu) this.menu.destroy()
-
-    // Limpieza del temporizador viejo
-    if (this.tracker) this.tracker.destroy()
-
-    //limpiar fantasmas de robot antiguos
-    if (this.socketManager) {
-      this.socketManager.destroy()
-    }
-
-    // Destruir todo
     this.destroy()
 
-    // Reiniciar instancia
     instance = null
     const newExperience = new Experience(this.canvas)
-
-    // Forzar modo tercera persona
     newExperience.isThirdPerson = true
 
-    // Limpiar botón cancelar
     const cancelBtn = document.getElementById('cancel-button')
     if (cancelBtn) cancelBtn.remove()
 
-
-    // Esconder botones en la nueva instancia:
     newExperience.tracker?.hideGameButtons?.()
   }
 
-
+  /**
+   * resetGameToFirstLevel — Reinicia al nivel 1 sin destruir la instancia.
+   *
+   * Errores que tenía la versión anterior y se corrigen aquí:
+   * 1. No reseteaba accumulatedPoints → los puntos del intento anterior
+   *    se sumaban al nuevo.
+   * 2. No reseteaba gameStarted → el bucle de enemigos no arrancaba.
+   * 3. No re-spawneaba enemigos → el juego quedaba sin perseguidores.
+   * 4. No reseteaba robotHP ni actualizaba el HUD de vida.
+   * 5. No reconectaba menu._world (necesario tras recrear world).
+   * 6. El tracker no se reiniciaba correctamente (seguía contando el
+   *    tiempo del intento anterior).
+   */
   resetGameToFirstLevel() {
-    console.log('♻️ Reiniciando al nivel');
+    console.log('♻️ Reiniciando al nivel 1...')
 
-    // 💀 Destruir enemigo previo si existe
+    // 1. Cerrar el modal
+    this.modal.hide()
+
+    // 2. ✅ Reanimar el robot — revierte TODOS los efectos de die()
+    //    (body=null, rotation.x=-PI/2, animación death bloqueada)
+    this.world.robot?.revive?.()
+
+    // 3. Destruir todos los enemigos activos
     if (Array.isArray(this.world.enemies)) {
       this.world.enemies.forEach(e => e?.destroy?.())
       this.world.enemies = []
-    } else {
-      this.world.enemy?.destroy()
-      this.world.enemy = null
     }
 
-    // Resetear variables de World
-    this.world.points = 0;
-    this.world.robot.points = 0;
-    this.world.loader.prizes = [];
-    this.world.defeatTriggered = false
+    // 4. Resetear todos los contadores
+    this.world.points              = 0
+    this.world.accumulatedPoints   = 0
+    this.world.loader.prizes       = []
+    this.world.defeatTriggered     = false
+    this.world.finalPrizeActivated = false
+    this.world.gameStarted         = false
+    this.world.levelManager.currentLevel = 1
 
-    // Resetear nivel actual
-    this.world.levelManager.currentLevel = 1;
+    // 5. Restaurar vida al 100% y actualizar HUD
+    this.world.robotHP = 100
+    this.world._updateHealthHUD?.()
 
-    // Limpiar la escena
-    this.world.clearCurrentScene();
+    // 6. Limpiar obstáculos de olas
+    this.obstacleWavesDisabled = false
+    clearTimeout(this.obstacleWaveTimeout)
+    this.raycaster?.removeAllObstacles?.()
 
-    // Cargar nivel 1 de nuevo
-    this.world.loadLevel(1);
+    // 7. Limpiar escena 3D y física
+    this.world.clearCurrentScene()
 
-    // Reiniciar el seguimiento de tiempo
-    this.tracker.destroy(); // Detener el loop anterior
-    this.tracker = new GameTracker({ modal: this.modal, menu: this.menu });
-    this.tracker.start();
+    // 8. Cargar nivel 1 — async, actualiza HUD de puntos, nivel y posición del robot
+    this.world.loadLevel(1)
 
-    console.log('✅ Juego reiniciado en nivel 1.');
+    // 9. Respawnear enemigos con delay para esperar a loadLevel (async)
+    setTimeout(() => {
+      const enemiesCountEnv = parseInt(import.meta.env.VITE_ENEMIES_COUNT || '3', 10)
+      const enemiesCount = Number.isFinite(enemiesCountEnv) && enemiesCountEnv > 0 ? enemiesCountEnv : 3
+      this.world.spawnEnemies(enemiesCount)
+      console.log(`👾 ${enemiesCount} enemigos respawneados`)
+    }, 1800)
+
+    // 10. Reiniciar tracker de tiempo
+    this.tracker.destroy()
+    this.tracker = new GameTracker({ modal: this.modal, menu: this.menu })
+    this.tracker.start()
+
+    // 11. Reconectar menu._world
+    this.menu._world = this.world
+
+    // 12. Reactivar juego y olas de obstáculos
+    this.world.gameStarted = true
+    this._startObstacleWaves()
+
+    if (this.menu?.toggleButton?.style) {
+      this.menu.toggleButton.style.display = 'block'
+    }
+
+    console.log('✅ Juego reiniciado en nivel 1.')
   }
-
-
 }
