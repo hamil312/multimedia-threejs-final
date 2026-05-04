@@ -101,6 +101,7 @@ export default class ToyCarLoader {
         );
     }
 
+    // ✅ ACTUALIZADO: Maneja el caso donde la API devuelve 0 bloques
     async loadFromAPI() {
         try {
             const listRes = await fetch('/config/precisePhysicsModels.json');
@@ -115,22 +116,27 @@ export default class ToyCarLoader {
                 if (!res.ok) throw new Error('Conexión fallida');
 
                 blocks = await res.json();
-                console.log('Datos cargados desde la API:', blocks.length);
-                //console.log('🧩 Lista de bloques:', blocks.map(b => b.name))
+                console.log('📦 Datos cargados desde la API:', blocks.length);
+                
+                // ✅ NUEVO: Si la API devuelve 0 bloques, usar archivo local
+                if (blocks.length === 0) {
+                    throw new Error('La API devolvió 0 bloques, usando archivo local...');
+                }
+                
             } catch (apiError) {
-                console.warn('No se pudo conectar con la API. Cargando desde archivo local...');
+                console.warn('⚠️ No se pudo conectar con la API o devolvió 0 bloques. Usando archivo local...');
                 const localRes = await fetch('/data/toy_car_blocks.json');
                 const allBlocks = await localRes.json();
 
                 // 🔍 Filtrar solo nivel 1
                 blocks = allBlocks.filter(b => b.level === 1);
-                console.log(`Datos cargados desde archivo local (nivel 1): ${blocks.length}`);
+                console.log(`✅ Datos cargados desde archivo local (nivel 1): ${blocks.length}`);
 
             }
 
             this._processBlocks(blocks, precisePhysicsModels);
         } catch (err) {
-            console.error('Error al cargar bloques o lista Trimesh:', err);
+            console.error('❌ Error al cargar bloques o lista Trimesh:', err);
         }
     }
 
@@ -145,9 +151,24 @@ export default class ToyCarLoader {
             const blocks = await res.json();
             console.log(`📦 Bloques cargados (${blocks.length}) desde ${apiUrl}`);
 
-            this._processBlocks(blocks, precisePhysicsModels);
+            // ✅ NUEVO: Si la API devuelve 0 bloques, usar archivo local
+            if (blocks.length === 0) {
+                console.warn('⚠️ API devolvió 0 bloques, usando archivo local...');
+                const localRes = await fetch('/data/toy_car_blocks.json');
+                const allBlocks = await localRes.json();
+                
+                // Extraer nivel de la URL
+                const levelMatch = apiUrl.match(/level=(\d+)/);
+                const level = levelMatch ? parseInt(levelMatch[1]) : 1;
+                
+                const filteredBlocks = allBlocks.filter(b => b.level === level);
+                console.log(`✅ Bloques cargados desde archivo local (nivel ${level}): ${filteredBlocks.length}`);
+                this._processBlocks(filteredBlocks, precisePhysicsModels);
+            } else {
+                this._processBlocks(blocks, precisePhysicsModels);
+            }
         } catch (err) {
-            console.error('Error al cargar bloques desde URL:', err);
+            console.error('❌ Error al cargar bloques desde URL:', err);
         }
     }
 

@@ -123,6 +123,61 @@ export default class World {
         this.ambientSound.toggle()
     }
 
+    async saveScoreToDatabase() {
+        try {
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+            
+            let playerId = localStorage.getItem('playerId')
+            if (!playerId) {
+                playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                localStorage.setItem('playerId', playerId)
+            }
+
+            const currentPoints = Number(this.points) || 0
+            const accumulated = Number(this.accumulatedPoints) || 0
+
+            const totalScore = accumulated + currentPoints
+            const bestTime = this.experience?.tracker?.getElapsedSeconds?.() || 0
+
+            const scoreData = {
+                playerId,
+                defaultCoins: currentPoints,
+                finalPrizeCoins: this.finalPrizeActivated ? 1 : 0,
+                totalScore: totalScore,
+                level: this.levelManager.currentLevel,
+                bestTime: bestTime
+            }
+
+            console.log('📤 Enviando puntos a MongoDB:', scoreData)
+
+            const response = await fetch(`${backendUrl}/api/players/score`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(scoreData)
+            })
+
+            if (!response.ok) {
+                let errorData
+                try {
+                    errorData = await response.json()
+                } catch {
+                    errorData = await response.text()
+                }
+
+                console.error("❌ Error del backend:", errorData)
+                throw new Error(`HTTP ${response.status}`)
+            }
+
+            const result = await response.json()
+            console.log('✅ Puntos guardados en MongoDB:', result)
+
+            return result
+
+        } catch (error) {
+            console.error('❌ Error al guardar puntos:', error)
+        }
+    }
+
     update(delta) {
         this.fox?.update()
         this.robot?.update()
@@ -141,6 +196,13 @@ export default class World {
 
             if (distToClosest < 1.0 && !this.defeatTriggered) {
                 this.defeatTriggered = true  // Previene múltiples disparos
+                this.saveScoreToDatabase()
+                    .then(() => {
+                        console.log('💾 Puntaje guardado al morir')
+                    })
+                    .catch(err => {
+                        console.error('❌ Error guardando al morir:', err)
+                    })
 
                 if (window.userInteracted && this.loseSound) {
                     this.loseSound.play()
@@ -275,12 +337,26 @@ export default class World {
 
                 if (prize.role === "finalPrize") {
                     if (this.levelManager.currentLevel < this.levelManager.totalLevels) {
+                        // ✅ No es el último nivel: acumular y pasar al siguiente
+                        this.accumulatedPoints = (this.accumulatedPoints || 0) + this.points
+                        console.log(`📊 Puntos acumulados hasta ahora: ${this.accumulatedPoints}`)
                         this.levelManager.nextLevel()
                         this.points = 0
                         this.robot.points = 0
                     } else {
+                        // ✅ ES EL ÚLTIMO NIVEL: Guardar en BD y mostrar modal final
                         const elapsed = this.experience.tracker.stop()
                         this.experience.tracker.saveTime(elapsed)
+                        
+                        // GUARDAR PUNTOS EN MONGODB (sin await para no bloquear el juego)
+                        this.saveScoreToDatabase()
+                            .then(() => {
+                                console.log('✅ Puntaje guardado exitosamente en MongoDB')
+                            })
+                            .catch(err => {
+                                console.error('⚠️ Error al guardar pero continuando...', err)
+                            })
+                        
                         this.experience.tracker.showEndGameModal(elapsed)
 
                         this.experience.obstacleWavesDisabled = true
@@ -301,13 +377,13 @@ export default class World {
                 if (window.userInteracted) {
                     this.coinSound.play()
                 }
-
-                this.experience.menu.setStatus?.(`🎖️ Puntos: ${this.points}`)
+                const total = (this.accumulatedPoints || 0) + this.points
+                this.experience.menu.setStatus?.(`🎖️ Puntos: ${total}`)
             }
         })
 
-        // ✅ Verificar si todas las monedas se han recogido y aún no se activó el finalPrize
-        // ✅ Activar finalPrize si todas las monedas default fueron recolectadas (desde VR o PC)
+        // Verificar si todas las monedas se han recogido y aún no se activó el finalPrize
+        // Activar finalPrize si todas las monedas default fueron recolectadas (desde VR o PC)
         if (!this.finalPrizeActivated && this.loader?.prizes) {
             const totalDefault = this.loader.prizes.filter(p => p.role === 'default').length
             const collectedDefault = this.loader.prizes.filter(p => p.role === 'default' && p.collected).length
@@ -449,7 +525,8 @@ export default class World {
             this.points = 0;
             this.robot.points = 0;
             this.finalPrizeActivated = false;
-            this.experience.menu.setStatus?.(`🎖️ Puntos: ${this.points}`);
+            const total = (this.accumulatedPoints || 0) + this.points
+            this.experience.menu.setStatus?.(`🎖️ Puntos: ${total}`)
 
             if (data.blocks) {
                 const publicPath = (p) => {
