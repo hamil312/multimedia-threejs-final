@@ -12,16 +12,20 @@ export default class Robot {
         this.keyboard = this.experience.keyboard
         this.debug = this.experience.debug
         this.points = 0
+        this.maxHealth = 100
+        this.health = this.maxHealth
+        this.damagePerHit = 20
 
         this.verticalVelocity = 0
         this.grounded = true
         this.gravity = -20
-        this.groundY = 0.5
+        this.groundY = 0.0
 
         this.setModel()
         this.setSounds()
         this.setPhysics()
         this.setAnimation()
+        this.syncHealthHUD()
     }
 
     setModel() {
@@ -81,11 +85,11 @@ export default class Robot {
         this.animation.mixer = new THREE.AnimationMixer(this.model)
 
         this.animation.actions = {}
-        this.animation.actions.dance   = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[0])
-        this.animation.actions.death   = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[1])
-        this.animation.actions.idle    = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[2])
-        this.animation.actions.jump    = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[3])
-        this.animation.actions.walking = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[10])
+        this.animation.actions.dance   = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[1])
+        this.animation.actions.death   = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[0])
+        this.animation.actions.idle    = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[3])
+        this.animation.actions.jump    = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[5])
+        this.animation.actions.walking = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[16])
 
         this.animation.actions.current = this.animation.actions.idle
         this.animation.actions.current.play()
@@ -148,7 +152,7 @@ export default class Robot {
 
         // 4. Salto — Cannon aplica la gravedad, solo lanzamos impulso
         if (keys.space && isGrounded) {
-            this.body.velocity.y = 10  // velocidad vertical directa
+            this.body.velocity.y = 5  // velocidad vertical directa
             this.animation.play('jump')
         }
 
@@ -168,8 +172,8 @@ export default class Robot {
         }
 
         // 6. Reubicación emergencia
-        if (this.body.position.y < -10 || this.body.position.y > 18) {
-            this.body.position.set(0, 1.2, 0)
+        if (this.body.position.y < -10 || this.body.position.y > 40) {
+            this.body.position.set(0, 30, 0)
             this.body.velocity.set(0, 0, 0)
         }
 
@@ -184,6 +188,30 @@ export default class Robot {
 
         // 8. Sincronizar visual con física (Cannon mueve el body, tú lees la posición)
         this.group.position.copy(this.body.position)
+    }
+
+    takeDamage(amount = this.damagePerHit) {
+        if (!this.body || this.animation.actions.current === this.animation.actions.death) return
+
+        this.health = Math.max(0, this.health - amount)
+        this.syncHealthHUD()
+
+        if (this.health === 0) {
+            this.die()
+        }
+    }
+
+    syncHealthHUD() {
+        const hp = Math.max(0, Math.min(this.maxHealth, this.health))
+        this.health = hp
+
+        if (this.experience?.menu?.setHealth) {
+            this.experience.menu.setHealth(hp)
+        }
+
+        if (this.experience?.world) {
+            this.experience.world.robotHP = hp
+        }
     }
 
     moveInDirection(dir, speed) {
@@ -214,6 +242,8 @@ export default class Robot {
             this.animation.actions.current = this.animation.actions.death
 
             this.walkSound.stop()
+            this.health = 0
+            this.syncHealthHUD()
 
             if (this.body && this.physics.world.bodies.includes(this.body)) {
                 this.physics.world.removeBody(this.body)
@@ -224,6 +254,7 @@ export default class Robot {
             this.group.rotation.x = -Math.PI / 2
 
             console.log('Robot ha muerto')
+            this.experience.world.handlePlayerDeath()
         }
     }
 
@@ -264,6 +295,9 @@ export default class Robot {
         this.body.angularVelocity.set(0, 0, 0)
         this.body.quaternion.setFromEuler(0, 0, 0)
         this.body.wakeUp()
+
+        this.health = this.maxHealth
+        this.syncHealthHUD()
 
         // 3. Volver a animación idle
         const death = this.animation.actions.death

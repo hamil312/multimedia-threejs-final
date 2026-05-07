@@ -1,154 +1,174 @@
 import * as THREE from 'three'
 import * as CANNON from 'cannon-es'
-import FinalPrizeParticles from '../Utils/FinalPrizeParticles.js'
-import Sound from './Sound.js'
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js'
 
 export default class Enemy {
-    constructor({ scene, physicsWorld, playerRef, model, position, experience }) {
+    constructor({ experience, playerRef, position }) {
         this.experience = experience
-        this.scene = scene
-        this.physicsWorld = physicsWorld
+        this.scene = experience.scene
+        this.physics = experience.physics
+        this.resources = experience.resources
+        this.time = experience.time
+
+
         this.playerRef = playerRef
-        this.baseSpeed = 1.0  //Control velocidad del enemigo
-        this.speed = this.baseSpeed
-		this.delayActivation = 0 // activo de inmediato en modo escritorio
 
+        // CONFIGURACIÓN
+        this.speed = 1
+        this.attackDistance = 1.2   
+        this.attackCooldown = 1000  
+        this.lastAttackTime = 0
 
-
-        // Sonido de proximidad en loop
-        this.proximitySound = new Sound('/sounds/alert.ogg', {
-            loop: true,
-            volume: 0
-        })
-        this._soundCooldown = 0
-        this.proximitySound.play()
-
-        // Modelo visual
-        this.model = model.clone()
-        this.model.position.copy(position)
-        this.scene.add(this.model)
-
-        //  Material físico del enemigo
-        const enemyMaterial = new CANNON.Material('enemyMaterial')
-        enemyMaterial.friction = 0.0
-
-        // Cuerpo físico
-        const shape = new CANNON.Sphere(0.5)
-        this.body = new CANNON.Body({
-            mass: 5,
-            shape,
-            material: enemyMaterial,
-            position: new CANNON.Vec3(position.x, position.y, position.z),
-            linearDamping: 0.01
-        })
-
-		// Alinear altura con el robot en modo escritorio (evita que nunca colisionen por Y)
-		if (this.playerRef?.body) {
-			this.body.position.y = this.playerRef.body.position.y
-			this.model.position.y = this.body.position.y
-		}
-
-        this.body.sleepSpeedLimit = 0.0
-        this.body.wakeUp()
-        this.physicsWorld.addBody(this.body)
-
-        // Asocia el cuerpo al modelo
-        this.model.userData.physicsBody = this.body
-
-        // Colisión con robot
-        this._onCollide = (event) => {
-            if (event.body === this.playerRef.body) {
-                if (typeof this.playerRef.die === 'function') {
-                    this.playerRef.die()
-                }
-
-                if (this.proximitySound) {
-                    this.proximitySound.stop()
-                }
-
-                if (this.model.parent) {
-                    new FinalPrizeParticles({
-                        scene: this.scene,
-                        targetPosition: this.body.position,
-                        sourcePosition: this.body.position,
-                        experience: this.experience
-                    })
-
-                    this.destroy()
-                }
-            }
-        }
-
-        this.body.addEventListener('collide', this._onCollide)
+        this.setModel(position)
+        this.setPhysics()
+        this.setAnimation()
     }
 
-    update(delta) {
+    setModel(position) {
+        const resource = this.resources.items.enemyModel
+
+        this.model = SkeletonUtils.clone(resource.scene)
+        this.model.scale.set(0.8, 0.8, 0.8)
+
+        // 👇 ajuste de altura (clave)
+        this.model.position.set(0, -1, 0)
+
+        this.group = new THREE.Group()
+        this.group.add(this.model)
+        this.group.position.copy(position)
+        this.scene.add(this.group)
+
+        this.model.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true
+            }
+        })
+    }
+
+    setPhysics() {
+        const shape = new CANNON.Sphere(0.5)
+
+        this.body = new CANNON.Body({
+            mass: 0,
+            shape,
+            position: new CANNON.Vec3(
+                this.group.position.x,
+                this.group.position.y,
+                this.group.position.z
+            )
+        })
+
+        this._spawnY = this.group.position.y
+        this.physics.world.addBody(this.body)
+    }
+
+    setAnimation() {
+        const resource = this.resources.items.enemyModel
+
+        this.animation = {}
+        this.animation.mixer = new THREE.AnimationMixer(this.model)
+        this.animation.actions = {}
+
+        // MOSTRAR NOMBRES DE TODAS LAS ANIMACIONES (para debug)
+        console.log('Animaciones disponibles en Skeleton.glb:')
+        resource.animations.forEach((clip, index) => {
+            console.log(`[${index}] ${clip.name}`)
+            this.animation.actions[clip.name] = this.animation.mixer.clipAction(clip)
+        })
+
+        this.animation.idleAction = Object.values(this.animation.actions)[3]
+        this.animation.walkAction = Object.values(this.animation.actions)[12]
+        this.animation.attackAction = Object.values(this.animation.actions)[11]
+
+        const start = this.animation.idleAction || this.animation.walkAction
+        if (start) {
+            this.animation.actions.current = start
+            start.play()
+        }
+    }
+
+    playAnimation(action) {
+        if (!action || action === this.animation.actions.current) return
+
+        action.reset().play()
+        if (this.animation.actions.current) {
+            action.crossFadeFrom(this.animation.actions.current, 0.3)
+        }
+        this.animation.actions.current = action
+    }
+
+    followPlayer(delta) {
+        if (!this.playerRef?.body) return
+
+        const enemyPos = this.body.position
+        const playerPos = this.playerRef.body.position
+
+        const dx = playerPos.x - enemyPos.x
+        const dz = playerPos.z - enemyPos.z
+        const dy = playerPos.y - enemyPos.y
+        const distance = Math.sqrt(dx * dx + dz * dz + dy * dy)
+
+        if (!isFinite(dx) || !isFinite(dz)) return
+
+        if (distance > this.attackDistance) {
+            this.attacking = false
+
+            const nx = dx / distance
+            const nz = dz / distance
+
+            this.body.position.x += nx * this.speed * delta
+            this.body.position.z += nz * this.speed * delta
+            this.body.position.y = this._spawnY
+
+            const angle = Math.atan2(nx, nz)
+            this.group.rotation.y = angle
+
+            this.playAnimation(this.animation.walkAction || this.animation.idleAction)
+        } else {
+            this.attack()
+        }
+    }
+
+    attack() {
+        const now = Date.now()
+
+        if (now - this.lastAttackTime < this.attackCooldown) return
+        this.lastAttackTime = now
+
+        this.playAnimation(this.animation.attackAction || this.animation.idleAction)
+
+        // HACER DAÑO
+        if (this.playerRef?.takeDamage) {
+            this.playerRef.takeDamage(20)
+        }
+    }
+
+    update() {
+        const delta = this.time.delta * 0.001
+
+        if (this.animation?.mixer) {
+            this.animation.mixer.update(delta)
+        }
+
         if (this.delayActivation > 0) {
             this.delayActivation -= delta
             return
         }
 
-		if (!this.body || !this.playerRef?.body) return
+        this.followPlayer(delta)
 
-		const targetPos = new CANNON.Vec3(
-			this.playerRef.body.position.x,
-			this.playerRef.body.position.y,
-			this.playerRef.body.position.z
-		)
-
-        const enemyPos = this.body.position
-
-        //  Volumen según cercanía
-        const distance = enemyPos.distanceTo(targetPos)
-        if (distance < 4) {
-            this.speed = 2.5
-        } else {
-            this.speed = this.baseSpeed
-        }
-        const maxDistance = 10
-        const clampedDistance = Math.min(distance, maxDistance)
-        const proximityVolume = 1 - (clampedDistance / maxDistance)
-
-        if (this.proximitySound) {
-            this.proximitySound.setVolume(proximityVolume * 0.8)
-        }
-
-        //  Movimiento directo hacia el robot
-		const direction = new CANNON.Vec3(
-			targetPos.x - enemyPos.x,
-			targetPos.y - enemyPos.y,
-			targetPos.z - enemyPos.z
-		)
-
-		if (direction.length() > 0.5) {
-            direction.normalize()
-            direction.scale(this.speed, direction)
-            this.body.velocity.x = direction.x
-			this.body.velocity.y = direction.y
-            this.body.velocity.z = direction.z
-        }
-
-        //  Sincronizar modelo visual
-        this.model.position.copy(this.body.position)
+        this.group.position.copy(this.body.position)
     }
 
     destroy() {
-        if (this.model) {
-            this.scene.remove(this.model)
+        if (this.group) {
+            this.scene.remove(this.group)
         }
 
-        if (this.proximitySound) {
-            this.proximitySound.stop()
-        }
-
-        if (this.body) {
-            this.body.removeEventListener('collide', this._onCollide)
-
-            if (this.physicsWorld.bodies.includes(this.body)) {
-                this.physicsWorld.removeBody(this.body)
-            }
-
-            this.body = null
+        if (this.body && this.physics.world.bodies.includes(this.body)) {
+            this.physics.world.removeBody(this.body)
         }
     }
+
+
 }

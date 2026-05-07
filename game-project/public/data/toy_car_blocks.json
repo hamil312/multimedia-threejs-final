@@ -2765,7 +2765,7 @@
         "y": 0.7534662485122681,
         "z": 8.377314567565918,
         "level": 2,
-        "role": "default"
+        "role": "finalPrize"
     },
     {
         "name": "wall-c-flat.010_lev2",
@@ -3453,7 +3453,7 @@
         "y": 19.339950561523438,
         "z": -4.376596927642822,
         "level": 3,
-        "role": "default"
+        "role": "finalPrize"
     },
     {
         "name": "baked_lev1_lev3",

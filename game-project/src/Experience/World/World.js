@@ -24,6 +24,8 @@ export default class World {
         this.finalPrizeActivated = false
         this.gameStarted = false
         this.enemies = []
+        this.robotHP = 100
+        this.defeatTriggered = false
 
         this.coinSound = new Sound('/sounds/coin.ogg')
         this.ambientSound = new AmbientSound('/sounds/ambiente.mp3')
@@ -108,7 +110,7 @@ export default class World {
                 scene: this.scene,
                 physicsWorld: this.experience.physics.world,
                 playerRef: this.robot,
-                model: this.enemyTemplate,
+                model: this.resources.items.enemyModel,
                 position: new THREE.Vector3(x, y, z),
                 experience: this.experience
             })
@@ -121,6 +123,55 @@ export default class World {
 
     toggleAudio() {
         this.ambientSound.toggle()
+    }
+
+    _updateHealthHUD() {
+        const hp = this.robot?.health ?? this.robotHP ?? 100
+        this.robotHP = Math.max(0, Math.min(100, hp))
+        if (this.experience?.menu?.setHealth) {
+            this.experience.menu.setHealth(this.robotHP)
+        }
+    }
+
+    handlePlayerDeath() {
+        if (this.defeatTriggered) return // Previene múltiples disparos
+        this.defeatTriggered = true
+
+        this.saveScoreToDatabase()
+            .then(() => {
+                console.log('💾 Puntaje guardado al morir')
+            })
+            .catch(err => {
+                console.error('❌ Error guardando al morir:', err)
+            })
+
+        if (window.userInteracted && this.loseSound) {
+            this.loseSound.play()
+        }
+
+        const firstEnemy = this.enemies?.[0]
+        const enemyMesh = firstEnemy?.model || firstEnemy?.group
+        if (enemyMesh) {
+            enemyMesh.scale.set(1.3, 1.3, 1.3)
+            setTimeout(() => {
+                enemyMesh.scale.set(1, 1, 1)
+            }, 500)
+        }
+
+        this.experience.modal.show({
+            icon: '💀',
+            message: '¡El enemigo te atrapó!\n¿Quieres intentarlo otra vez?',
+            buttons: [
+                {
+                    text: '🔁 Reintentar',
+                    onClick: () => this.experience.resetGameToFirstLevel()
+                },
+                {
+                    text: '❌ Salir',
+                    onClick: () => this.experience.resetGame()
+                }
+            ]
+        })
     }
 
     async saveScoreToDatabase() {
@@ -186,54 +237,6 @@ export default class World {
         // 🧟‍♂️ Solo actualizar enemigos si el juego ya comenzó
         if (this.gameStarted) {
             this.enemies?.forEach(e => e.update(delta))
-
-            // 💀 Verificar si algún enemigo atrapó al jugador
-            const distToClosest = this.enemies?.reduce((min, e) => {
-                if (!e?.body?.position || !this.robot?.body?.position) return min
-                const d = e.body.position.distanceTo(this.robot.body.position)
-                return Math.min(min, d)
-            }, Infinity) ?? Infinity
-
-            if (distToClosest < 1.0 && !this.defeatTriggered) {
-                this.defeatTriggered = true  // Previene múltiples disparos
-                this.saveScoreToDatabase()
-                    .then(() => {
-                        console.log('💾 Puntaje guardado al morir')
-                    })
-                    .catch(err => {
-                        console.error('❌ Error guardando al morir:', err)
-                    })
-
-                if (window.userInteracted && this.loseSound) {
-                    this.loseSound.play()
-                }
-
-                const firstEnemy = this.enemies?.[0]
-                const enemyMesh = firstEnemy?.model || firstEnemy?.group
-                if (enemyMesh) {
-                    enemyMesh.scale.set(1.3, 1.3, 1.3)
-                    setTimeout(() => {
-                        enemyMesh.scale.set(1, 1, 1)
-                    }, 500)
-                }
-
-                this.experience.modal.show({
-                    icon: '💀',
-                    message: '¡El enemigo te atrapó!\n¿Quieres intentarlo otra vez?',
-                    buttons: [
-                        {
-                            text: '🔁 Reintentar',
-                            onClick: () => this.experience.resetGameToFirstLevel()
-                        },
-                        {
-                            text: '❌ Salir',
-                            onClick: () => this.experience.resetGame()
-                        }
-                    ]
-                })
-
-                return
-            }
         }
 
         if (this.thirdPersonCamera && this.experience.isThirdPerson && !this.experience.renderer.instance.xr.isPresenting) {
@@ -267,7 +270,7 @@ export default class World {
                 prize.collect()
                 prize.collected = true
 
-                if (prize.role === "default") {
+                if (prize.role === "default" || prize.role === "finalPrize") {
                     this.points = (this.points || 0) + 1
                     this.robot.points = this.points
 
@@ -514,10 +517,21 @@ export default class World {
                 const allBlocks = await localRes.json();
 
                 const filteredBlocks = allBlocks.filter(b => b.level === level);
+                let spawn = { x: 5, y: 1.5, z: 5 }; // Valor por defecto
+
+                if (level === 2){
+                    spawn = { x: 0, y: 1.5, z: 0 }
+                } else if (level === 3){
+                    spawn = { x: 0, y: 15, z: 0 }
+                } else if (level === 4){
+                    spawn = { x: 1, y: 1.5, z: 42 }
+                } else if (level === 5){
+                    spawn = { x: 1, y: 1.5, z: 42 }
+                }
 
                 data = {
                     blocks: filteredBlocks,
-                    spawnPoint: { x: -17, y: 1.5, z: -67 } // valor por defecto si no viene en JSON
+                    spawnPoint: spawn // valor por defecto si no viene en JSON
                 };
             }
 
