@@ -3,8 +3,11 @@ const mongoose = require('mongoose')
 const Block = require('./models/Block')
 
 const positions = [
-    { x: 3.97, y: 0.5, z: 1.93 },
-    { x: -0.25, y: 0.5, z: -2.79 },
+    { x: -8, y: 0.5, z: 23 },
+    { x: 0, y: 1.5, z: 0 },
+    { x: 0, y: 15, z: 0 },
+    { x: 1, y: 1.5, z: 42 },
+    { x: 1, y: 1.5, z: 42 },
 ]
 
 async function seedDatabase() {
