@@ -333,6 +333,8 @@ export default class Experience {
 
     // 8. Cargar nivel 1 — async, actualiza HUD de puntos, nivel y posición del robot
     this.world.loadLevel(1)
+    this.menu.setLevel?.(this.world.levelManager.currentLevel, this.world.levelManager.totalLevels)
+    this.menu.setStatus?.('🎖️ Puntos: 0')
 
     // 9. Respawnear enemigos con delay para esperar a loadLevel (async)
     setTimeout(() => {

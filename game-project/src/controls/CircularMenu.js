@@ -61,6 +61,7 @@ export default class CircularMenu {
       body.hud-high-contrast {
         --hud-surface:#000; --hud-border:#fff; --hud-mid:#fff;
         --hud-accent:#fff;  --hud-light:#fff;
+        --hud-text-contrast: #000;
       }
       @keyframes hud-heart-pulse {
         0%,100%{transform:scale(1)} 50%{transform:scale(1.22)}
@@ -157,11 +158,11 @@ export default class CircularMenu {
       </div>
       <div style="position:relative;margin-top:3px;">
         <div style="height:6px;background:var(--hud-border);border-radius:3px;overflow:hidden;">
-          <div id="hud-level-bar" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="2"
-            aria-label="Progreso: nivel 1 de 2"
-            style="height:100%;width:50%;background:var(--hud-accent);border-radius:3px;transition:width .55s cubic-bezier(.4,0,.2,1);"></div>
+          <div id="hud-level-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="27"
+            aria-label="Progreso: 0 de 27 monedas"
+            style="height:100%;width:0%;background:var(--hud-accent);border-radius:3px;transition:width .55s cubic-bezier(.4,0,.2,1);"></div>
         </div>
-        <span id="hud-level-pct" style="position:absolute;right:0;top:8px;font-size:9px;font-family:var(--hud-body);color:var(--hud-mid);">50%</span>
+        <span id="hud-level-pct" style="position:absolute;right:0;top:8px;font-size:9px;font-family:var(--hud-body);color:var(--hud-mid);">0%</span>
       </div>`
 
     // PUNTOS
@@ -376,7 +377,7 @@ export default class CircularMenu {
 
   _makeTextSizeRow() {
     const wrap = document.createElement('div'); wrap.style.cssText='padding:7px 14px;display:flex;align-items:center;justify-content:space-between;'
-    const lbl = document.createElement('span'); lbl.textContent='Tamaño de texto'; lbl.style.cssText='font-size:14px;color:var(--hud-light);'
+    const lbl = document.createElement('span'); lbl.textContent='Tamaño de texto'; lbl.style.cssText='font-size:14px;color:var(--hud-text-contrast);'
     const btns = document.createElement('div'); btns.setAttribute('role','group'); btns.setAttribute('aria-label','Tamaño de texto del HUD'); btns.style.cssText='display:flex;gap:5px;'
     const sizes=[{label:'A',scale:1,fs:'12px',aria:'Texto normal'},{label:'A',scale:1.2,fs:'15px',aria:'Texto grande'},{label:'A',scale:1.45,fs:'18px',aria:'Texto muy grande'}]
     sizes.forEach(s=>{
@@ -384,7 +385,7 @@ export default class CircularMenu {
       b.setAttribute('aria-label',s.aria); b.setAttribute('aria-pressed',String(Math.abs(this._a11y.fontSize-s.scale)<0.01))
       b.style.cssText=`font-size:${s.fs};font-family:var(--hud-font);width:32px;height:32px;
         background:${Math.abs(this._a11y.fontSize-s.scale)<0.01?'var(--hud-mid)':'var(--hud-border)'};
-        color:var(--hud-light);border:1px solid var(--hud-mid);border-radius:4px;cursor:pointer;
+        color:var(--hud-text-contrast);border:1px solid var(--hud-mid);border-radius:4px;cursor:pointer;
         display:flex;align-items:center;justify-content:center;transition:background .2s;`
       b.addEventListener('click',()=>{
         this._a11y.fontSize=s.scale; this._applyFontScale(s.scale)
@@ -512,18 +513,33 @@ export default class CircularMenu {
   }
 
   setStatus(text) {
-    const match=String(text).match(/\d+/), num=match?String(parseInt(match[0])).padStart(2,'0'):'00'
+    const match=String(text).match(/\d+/), num=match?String(parseInt(match[0], 10)).padStart(2,'0'):'00'
     if(this.status)      this.status.textContent=num
     if(this.pointsBlock) this.pointsBlock.setAttribute('aria-label',`Puntos totales: ${num}`)
-  }
+    this.setProgress(Number(num))
+    }
 
   setLevel(current, total) {
     if(this.levelNum) this.levelNum.textContent=current
     if(this.levelDen) this.levelDen.textContent=`/ ${total}`
-    const pct=Math.round((current/total)*100)
-    if(this.levelBar){ this.levelBar.style.width=`${pct}%`; this.levelBar.setAttribute('aria-valuenow',current); this.levelBar.setAttribute('aria-valuemax',total); this.levelBar.setAttribute('aria-label',`Progreso: nivel ${current} de ${total}`) }
-    if(this.levelPct)   this.levelPct.textContent=`${pct}%`
     if(this.levelBlock) this.levelBlock.setAttribute('aria-label',`Nivel de exploración: ${current} de ${total}`)
+  }
+
+  setProgress(coinsCollected, totalCoins = 27) {
+    const pct = Math.min(100, Math.round((coinsCollected / totalCoins) * 100))
+    if(this.levelBar) {
+      this.levelBar.style.width = `${pct}%`
+      this.levelBar.setAttribute('aria-valuenow', coinsCollected)
+      this.levelBar.setAttribute('aria-valuemin', 0)
+      this.levelBar.setAttribute('aria-valuemax', totalCoins)
+      this.levelBar.setAttribute('aria-label', `Progreso: ${coinsCollected} de ${totalCoins} monedas`)
+    }
+    if(this.levelPct) this.levelPct.textContent = `${pct}%`
+    if(this.levelBlock) {
+      const level = this.levelNum?.textContent || '1'
+      const totalLevels = this.levelDen?.textContent?.replace('/ ', '') || '5'
+      this.levelBlock.setAttribute('aria-label', `Nivel de exploración: ${level} de ${totalLevels}, ${pct}% completado`)
+    }
   }
 
   setHealth(hp) { this._renderHearts(Math.max(0,Math.min(100,hp))) }
