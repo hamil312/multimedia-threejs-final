@@ -40,22 +40,6 @@
         "role": "default"
     },
     {
-        "name": "coin_structure_diagonal_lev1",
-        "x": -27.272499084472656,
-        "y": 5.692780017852783,
-        "z": -32.33250045776367,
-        "level": 1,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_detailed_lev1",
-        "x": 6.237412452697754,
-        "y": 0.7155641913414001,
-        "z": 1.2897837162017822,
-        "level": 1,
-        "role": "finalPrize"
-    },
-    {
         "name": "bigrock4.001_lev1.004",
         "x": -2.351090431213379,
         "y": 6.744661331176758,
@@ -316,6 +300,14 @@
         "x": -30.647748947143555,
         "y": 0.0,
         "z": -30.566898345947266,
+        "level": 1,
+        "role": "default"
+    },
+    {
+        "name": "floor_lev1",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.0,
         "level": 1,
         "role": "default"
     },
@@ -776,22 +768,6 @@
         "role": "default"
     },
     {
-        "name": "coin_structure_diagonal.001_lev1",
-        "x": 26.258352279663086,
-        "y": 0.6635336875915527,
-        "z": 29.420238494873047,
-        "level": 1,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal.002_lev1",
-        "x": -12.574098587036133,
-        "y": 0.6635336875915527,
-        "z": 5.921530246734619,
-        "level": 1,
-        "role": "default"
-    },
-    {
         "name": "wall-broken.001_lev1",
         "x": -10.772374153137207,
         "y": -1.2816953659057617,
@@ -932,14 +908,6 @@
         "x": 33.1505241394043,
         "y": 3.9677250385284424,
         "z": -1.8714580535888672,
-        "level": 1,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal.003_lev1",
-        "x": 16.094144821166992,
-        "y": 10.6442232131958,
-        "z": -3.675676107406616,
         "level": 1,
         "role": "default"
     },
@@ -2752,14 +2720,6 @@
         "role": "default"
     },
     {
-        "name": "coin_structure_detailed_lev1_lev2",
-        "x": -5.5465312004089355,
-        "y": 0.7534662485122681,
-        "z": 8.377314567565918,
-        "level": 2,
-        "role": "finalPrize"
-    },
-    {
         "name": "wall-c-flat.010_lev2",
         "x": -48.366939544677734,
         "y": 0.10349538922309875,
@@ -2780,38 +2740,6 @@
         "x": -40.206539154052734,
         "y": 0.10349538922309875,
         "z": 15.539512634277344,
-        "level": 2,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev3_lev2",
-        "x": -43.385860443115234,
-        "y": 0.7900409698486328,
-        "z": 13.298417091369629,
-        "level": 2,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev3.001_lev2",
-        "x": -38.5466423034668,
-        "y": 0.7900409698486328,
-        "z": 1.747611403465271,
-        "level": 2,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev3.002_lev2",
-        "x": -1.6775269508361816,
-        "y": 0.7900409698486328,
-        "z": -10.460199356079102,
-        "level": 2,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev3.003_lev2",
-        "x": 37.84890365600586,
-        "y": 0.7900409698486328,
-        "z": 10.766677856445312,
         "level": 2,
         "role": "default"
     },
@@ -3438,14 +3366,6 @@
         "z": -16.70325469970703,
         "level": 3,
         "role": "default"
-    },
-    {
-        "name": "coin_structure_detailed_lev1_lev3",
-        "x": -21.476224899291992,
-        "y": 19.339950561523438,
-        "z": -4.376596927642822,
-        "level": 3,
-        "role": "finalPrize"
     },
     {
         "name": "baked_lev1_lev3",
@@ -5024,38 +4944,6 @@
         "role": "default"
     },
     {
-        "name": "coin_structure_diagonal_lev1.002_lev4_lev3",
-        "x": 22.852502822875977,
-        "y": 7.842714309692383,
-        "z": 32.54707336425781,
-        "level": 3,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.002_lev4.001_lev3",
-        "x": -22.535715103149414,
-        "y": 1.2340734004974365,
-        "z": -4.243453502655029,
-        "level": 3,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.002_lev4.002_lev3",
-        "x": 27.63770866394043,
-        "y": 1.2340734004974365,
-        "z": -36.9891357421875,
-        "level": 3,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.002_lev4.003_lev3",
-        "x": -24.450956344604492,
-        "y": 19.401500701904297,
-        "z": 31.461442947387695,
-        "level": 3,
-        "role": "default"
-    },
-    {
         "name": "plane_lev1_lev4",
         "x": -0.45347023010253906,
         "y": 0.14174017310142517,
@@ -5070,30 +4958,6 @@
         "z": -0.0,
         "level": 4,
         "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.002_lev4",
-        "x": 31.683448791503906,
-        "y": 0.6635336875915527,
-        "z": 41.984222412109375,
-        "level": 4,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.001_lev4",
-        "x": 31.51143455505371,
-        "y": 0.6635336875915527,
-        "z": -41.84116744995117,
-        "level": 4,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_detailed_lev1_lev4",
-        "x": 1.865072250366211,
-        "y": 0.7155641913414001,
-        "z": -10.388814926147461,
-        "level": 4,
-        "role": "finalPrize"
     },
     {
         "name": "wall-opening_lev4",
@@ -5700,30 +5564,6 @@
         "x": 15.67664623260498,
         "y": 0.0,
         "z": -42.25870132446289,
-        "level": 4,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.003_lev4",
-        "x": -40.14979934692383,
-        "y": 0.6635336875915527,
-        "z": -33.74009704589844,
-        "level": 4,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.004_lev4",
-        "x": -40.14979934692383,
-        "y": 0.6635336875915527,
-        "z": -14.138734817504883,
-        "level": 4,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.005_lev4",
-        "x": -40.14979934692383,
-        "y": 0.6635336875915527,
-        "z": 36.979713439941406,
         "level": 4,
         "role": "default"
     },
@@ -7158,54 +6998,6 @@
         "z": 38.743560791015625,
         "level": 5,
         "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.005_lev5",
-        "x": -18.911670684814453,
-        "y": 0.6635336875915527,
-        "z": 36.413211822509766,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.004_lev5",
-        "x": -33.159427642822266,
-        "y": 7.208564758300781,
-        "z": -14.138734817504883,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.003_lev5",
-        "x": -33.12313461303711,
-        "y": 7.444564342498779,
-        "z": -40.60528564453125,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.002_lev5",
-        "x": 22.362062454223633,
-        "y": 6.638646602630615,
-        "z": 38.849830627441406,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.001_lev5",
-        "x": 33.74898147583008,
-        "y": 7.233511924743652,
-        "z": -40.90610122680664,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_detailed_lev1_lev5",
-        "x": 2.078047037124634,
-        "y": 0.7155641913414001,
-        "z": -19.8234920501709,
-        "level": 5,
-        "role": "finalPrize"
     },
     {
         "name": "barrels_lev5",

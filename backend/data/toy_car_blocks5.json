@@ -520,54 +520,6 @@
         "role": "default"
     },
     {
-        "name": "coin_structure_diagonal_lev1.005_lev5",
-        "x": -18.911670684814453,
-        "y": 0.6635336875915527,
-        "z": 36.413211822509766,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.004_lev5",
-        "x": -33.159427642822266,
-        "y": 7.208564758300781,
-        "z": -14.138734817504883,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.003_lev5",
-        "x": -33.12313461303711,
-        "y": 7.444564342498779,
-        "z": -40.60528564453125,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.002_lev5",
-        "x": 22.362062454223633,
-        "y": 6.638646602630615,
-        "z": 38.849830627441406,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_diagonal_lev1.001_lev5",
-        "x": 33.74898147583008,
-        "y": 7.233511924743652,
-        "z": -40.90610122680664,
-        "level": 5,
-        "role": "default"
-    },
-    {
-        "name": "coin_structure_detailed_lev1_lev5",
-        "x": 2.078047037124634,
-        "y": 0.7155641913414001,
-        "z": -19.8234920501709,
-        "level": 5,
-        "role": "default"
-    },
-    {
         "name": "barrels_lev5",
         "x": -7.431920051574707,
         "y": 0.0,

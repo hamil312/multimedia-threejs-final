@@ -90,6 +90,7 @@ export default class Robot {
         this.animation.actions.idle    = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[3])
         this.animation.actions.jump    = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[5])
         this.animation.actions.walking = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[16])
+        this.animation.actions.run     = this.animation.mixer.clipAction(this.resources.items.robotModel.animations[10])
 
         this.animation.actions.current = this.animation.actions.idle
         this.animation.actions.current.play()
@@ -132,7 +133,8 @@ export default class Robot {
         const keys = this.keyboard.getState()
         const turnSpeed = 2.5
         let isMoving = false
-        const maxSpeed = 10
+        let isRunning = false
+        let maxSpeed = 7
 
         // 1. Rotación primero
         if (keys.left) {
@@ -148,12 +150,20 @@ export default class Robot {
 
         // 3. Detectar si está en el suelo por velocidad vertical cercana a 0
         //    (Cannon resuelve esto solo con el cuerpo dinámico)
-        const isGrounded = Math.abs(this.body.velocity.y) < 0.5
+        const isGrounded = Math.abs(this.body.velocity.y) < 0.2
 
         // 4. Salto — Cannon aplica la gravedad, solo lanzamos impulso
         if (keys.space && isGrounded) {
-            this.body.velocity.y = 5  // velocidad vertical directa
+            this.body.velocity.y = 7.5  // velocidad vertical directa
             this.animation.play('jump')
+        }
+
+        if(keys.shift) {
+            maxSpeed = 12
+            isRunning = true
+        } else {
+            maxSpeed = 7
+            isRunning = false
         }
 
         // 5. Movimiento horizontal — sobreescribimos X y Z, Cannon conserva Y
@@ -178,12 +188,14 @@ export default class Robot {
         }
 
         // 7. Animaciones
-        if (isMoving && this.animation.actions.current !== this.animation.actions.walking) {
+        if (isMoving && this.animation.actions.current !== this.animation.actions.walking && this.animation.actions.current !== this.animation.actions.run) {
             this.animation.play('walking')
         } else if (!isMoving
             && this.animation.actions.current !== this.animation.actions.idle
             && this.animation.actions.current !== this.animation.actions.jump) {
             this.animation.play('idle')
+        } else if (isRunning && this.animation.actions.current !== this.animation.actions.run) {
+            this.animation.play('run')
         }
 
         // 8. Sincronizar visual con física (Cannon mueve el body, tú lees la posición)
