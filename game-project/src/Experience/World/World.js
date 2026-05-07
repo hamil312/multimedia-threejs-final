@@ -541,6 +541,7 @@ export default class World {
             this.finalPrizeActivated = false;
             const total = (this.accumulatedPoints || 0) + this.points
             this.experience.menu.setStatus?.(`🎖️ Puntos: ${total}`)
+            this.experience.menu.setLevel?.(this.levelManager.currentLevel, this.levelManager.totalLevels)
 
             if (data.blocks) {
                 const publicPath = (p) => {
