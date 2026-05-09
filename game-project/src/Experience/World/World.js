@@ -177,53 +177,51 @@ export default class World {
     async saveScoreToDatabase() {
         try {
             const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
-            
-            let playerId = localStorage.getItem('playerId')
-            if (!playerId) {
-                playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-                localStorage.setItem('playerId', playerId)
-            }
-
-            const currentPoints = Number(this.points) || 0
-            const accumulated = Number(this.accumulatedPoints) || 0
-
-            const totalScore = accumulated + currentPoints
-            const bestTime = this.experience?.tracker?.getElapsedSeconds?.() || 0
-
+    
+            // ✅ Usar el ID del usuario autenticado (viene del JWT decodificado en App.jsx)
+            const gameUser = window.__gameUser
+            const playerId = gameUser?.id || gameUser?._id || 'anonymous'
+    
+            const currentPoints = Number(this.points)           || 0
+            const accumulated   = Number(this.accumulatedPoints) || 0
+            const totalScore    = accumulated + currentPoints
+            const bestTime      = this.experience?.tracker?.getElapsedSeconds?.() || 0
+    
             const scoreData = {
                 playerId,
-                defaultCoins: currentPoints,
+                username:        gameUser?.username || 'anónimo',
+                defaultCoins:    currentPoints,
                 finalPrizeCoins: this.finalPrizeActivated ? 1 : 0,
-                totalScore: totalScore,
-                level: this.levelManager.currentLevel,
-                bestTime: bestTime
+                totalScore,
+                level:           this.levelManager.currentLevel,
+                bestTime
             }
-
+    
             console.log('📤 Enviando puntos a MongoDB:', scoreData)
-
+    
+            // ✅ Incluir el JWT en el header Authorization
+            const token = localStorage.getItem('game_token')
+            const headers = { 'Content-Type': 'application/json' }
+            if (token) headers['Authorization'] = `Bearer ${token}`
+    
             const response = await fetch(`${backendUrl}/api/players/score`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(scoreData)
+                headers,
+                body:   JSON.stringify(scoreData)
             })
-
+    
             if (!response.ok) {
                 let errorData
-                try {
-                    errorData = await response.json()
-                } catch {
-                    errorData = await response.text()
-                }
-
+                try   { errorData = await response.json() }
+                catch { errorData = await response.text()  }
                 console.error("❌ Error del backend:", errorData)
                 throw new Error(`HTTP ${response.status}`)
             }
-
+    
             const result = await response.json()
             console.log('✅ Puntos guardados en MongoDB:', result)
-
             return result
-
+    
         } catch (error) {
             console.error('❌ Error al guardar puntos:', error)
         }
