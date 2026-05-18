@@ -100,9 +100,9 @@ export const sources = [
         "path": "/models/toycar/bigrock4.001.003_lev1.glb"
     },
     {
-        "name": "bigrock4.001_lev1.004",
+        "name": "bigrock4.001.004_lev1",
         "type": "gltfModel",
-        "path": "/models/toycar/bigrock4.001_lev1.004.glb"
+        "path": "/models/toycar/bigrock4.001.004_lev1.glb"
     },
     {
         "name": "bigrock4.001_lev1",
@@ -338,6 +338,16 @@ export const sources = [
         "name": "floor_lev1",
         "type": "gltfModel",
         "path": "/models/toycar/floor_lev1.glb"
+    },
+    {
+        "name": "plane.001_lev1.001",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev1.001.glb"
+    },
+    {
+        "name": "plane.001_lev1",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev1.glb"
     },
     {
         "name": "plane_lev1",

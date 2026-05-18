@@ -257,6 +257,7 @@ export default class Experience {
 
     if (this.world) {
       this.world.gameStarted = true
+      this.world.startAmbientSound()
     }
     console.log('🎮 Iniciando partida...')
   }

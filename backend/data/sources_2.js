@@ -270,6 +270,16 @@ export const sources = [
         "path": "/models/toycar/pallet_lev2.glb"
     },
     {
+        "name": "plane.001_lev2",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev2.glb"
+    },
+    {
+        "name": "plane_lev2",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane_lev2.glb"
+    },
+    {
         "name": "planks_lev2",
         "type": "gltfModel",
         "path": "/models/toycar/planks_lev2.glb"

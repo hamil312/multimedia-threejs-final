@@ -820,6 +820,16 @@ export const sources = [
         "path": "/models/toycar/overhang-round-railing.002_lev3.glb"
     },
     {
+        "name": "plane.001_lev3",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev3.glb"
+    },
+    {
+        "name": "plane_lev3",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane_lev3.glb"
+    },
+    {
         "name": "pulley-crate.001_lev3",
         "type": "gltfModel",
         "path": "/models/toycar/pulley-crate.001_lev3.glb"

@@ -196,5 +196,7 @@
     "trap_lev4",
     "spikes_lev4",
     "trap.001_lev4",
-    "spikes.001_lev4"
+    "spikes.001_lev4",
+    "plane_lev4",
+    "plane.001_lev4"
 ]

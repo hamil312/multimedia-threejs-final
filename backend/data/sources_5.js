@@ -315,6 +315,26 @@ export const sources = [
         "path": "/models/toycar/lid_lev5.glb"
     },
     {
+        "name": "plane.001_lev5",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev5.glb"
+    },
+    {
+        "name": "plane.002_lev5",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.002_lev5.glb"
+    },
+    {
+        "name": "plane.003_lev5",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.003_lev5.glb"
+    },
+    {
+        "name": "plane_lev5.001",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane_lev5.001.glb"
+    },
+    {
         "name": "plane_lev5",
         "type": "gltfModel",
         "path": "/models/toycar/plane_lev5.glb"

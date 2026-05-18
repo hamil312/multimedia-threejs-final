@@ -5,7 +5,8 @@ const cors       = require('cors')
 const http       = require('http')
 const socketio   = require('socket.io')
 const blockRoutes = require('./routes/blockRoutes')
-const authRoutes  = require('./routes/authRoutes')     
+const authRoutes  = require('./routes/authRoutes')
+const playerRoutes = require('./routes/playerRoutes')
 
 const app  = express()
 const port = process.env.PORT || 3001
@@ -14,10 +15,9 @@ app.use(cors())
 app.use(express.json())
 
 // ── Rutas ──────────────────────────────────────────────────────────────────
-app.use('/api/blocks', blockRoutes)
-app.use('/api/auth',   authRoutes)   // /api/auth/register, /login, /me
-
-// Ruta de puntos del jugador
+app.use('/api/blocks',  blockRoutes)
+app.use('/api/auth',    authRoutes)
+app.use('/api/players', playerRoutes)
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'API del juego activa' })

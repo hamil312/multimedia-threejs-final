@@ -12,6 +12,7 @@ import LevelManager from './LevelManager.js';
 import BlockPrefab from './BlockPrefab.js'
 import FinalPrizeParticles from '../Utils/FinalPrizeParticles.js'
 import Enemy from './Enemy.js'
+import Ghost from './Ghost.js'
 
 
 export default class World {
@@ -90,10 +91,10 @@ export default class World {
     spawnEnemies(count = 3) {
         if (!this.robot?.body?.position) return
         const playerPos = this.robot.body.position
-        const minRadius = 25
-        const maxRadius = 40
+        const minRadius = 10
+        const maxRadius = 20
+        const isGhostLevel = this.levelManager.currentLevel > 1
 
-        // Limpia anteriores si existen
         if (this.enemies?.length) {
             this.enemies.forEach(e => e?.destroy?.())
             this.enemies = []
@@ -104,18 +105,17 @@ export default class World {
             const radius = minRadius + Math.random() * (maxRadius - minRadius)
             const x = playerPos.x + Math.cos(angle) * radius
             const z = playerPos.z + Math.sin(angle) * radius
-            const y = 1.5
+            const y = isGhostLevel ? playerPos.y + 3 : 1.5
 
-            const enemy = new Enemy({
+            const enemy = new (isGhostLevel ? Ghost : Enemy)({
                 scene: this.scene,
                 physicsWorld: this.experience.physics.world,
                 playerRef: this.robot,
-                model: this.resources.items.enemyModel,
+                model: this.resources.items[isGhostLevel ? 'ghostModel' : 'enemyModel'],
                 position: new THREE.Vector3(x, y, z),
                 experience: this.experience
             })
 
-            // Pequeño delay para que no ataquen todos a la vez
             enemy.delayActivation = 1.0 + i * 0.5
             this.enemies.push(enemy)
         }
@@ -123,6 +123,12 @@ export default class World {
 
     toggleAudio() {
         this.ambientSound.toggle()
+    }
+
+    startAmbientSound() {
+        if (!this.ambientSound.isPlaying) {
+            this.ambientSound.toggle()
+        }
     }
 
     _updateHealthHUD() {
@@ -211,9 +217,10 @@ export default class World {
             })
     
             if (!response.ok) {
+                const text = await response.text()
                 let errorData
-                try   { errorData = await response.json() }
-                catch { errorData = await response.text()  }
+                try   { errorData = JSON.parse(text) }
+                catch { errorData = text }
                 console.error("❌ Error del backend:", errorData)
                 throw new Error(`HTTP ${response.status}`)
             }
@@ -282,7 +289,7 @@ export default class World {
                             if (finalCoin.model) finalCoin.model.visible = true
                             this.finalPrizeActivated = true
 
-                            new FinalPrizeParticles({
+                            this.finalPrizeParticles = new FinalPrizeParticles({
                                 scene: this.scene,
                                 targetPosition: finalCoin.pivot.position,
                                 sourcePosition: this.robot.body.position,
@@ -396,7 +403,7 @@ export default class World {
                     if (finalCoin.model) finalCoin.model.visible = true
                     this.finalPrizeActivated = true
 
-                    new FinalPrizeParticles({
+                    this.finalPrizeParticles = new FinalPrizeParticles({
                         scene: this.scene,
                         targetPosition: finalCoin.pivot.position,
                         sourcePosition: this.experience.vrDolly?.position ?? this.experience.camera.instance.position,
@@ -482,6 +489,14 @@ export default class World {
             const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
             const apiUrl = `${backendUrl}/api/blocks?level=${level}`;
 
+            const spawnByLevel = {
+                1: { x: -8,  y: 0.5, z: 23 },
+                2: { x: 0,   y: 1.5, z: 0  },
+                3: { x: 0,   y: 15,  z: 0  },
+                4: { x: 1,   y: 1.5, z: 42 },
+                5: { x: 1,   y: 1.5, z: 42 }
+            };
+
             let data;
             try {
                 const res = await fetch(apiUrl);
@@ -492,7 +507,14 @@ export default class World {
                     const preview = (await res.text()).slice(0, 120);
                     throw new Error(`Respuesta no-JSON desde API (${apiUrl}): ${preview}`);
                 }
-                data = await res.json();
+                const rawData = await res.json();
+                // La API devuelve un array de bloques (sin spawnPoint).
+                const blocks = Array.isArray(rawData) ? rawData : rawData.blocks || [];
+
+                data = {
+                    blocks,
+                    spawnPoint: spawnByLevel[level] || { x: 5, y: 1.5, z: 5 }
+                };
                 console.log(`📦 Datos del nivel ${level} cargados desde API`);
             } catch (error) {
                 console.warn(`⚠️ No se pudo conectar con el backend. Usando datos locales para nivel ${level}...`);
@@ -515,21 +537,9 @@ export default class World {
                 const allBlocks = await localRes.json();
 
                 const filteredBlocks = allBlocks.filter(b => b.level === level);
-                let spawn = { x: 5, y: 1.5, z: 5 }; // Valor por defecto
-
-                if (level === 2){
-                    spawn = { x: 0, y: 1.5, z: 0 }
-                } else if (level === 3){
-                    spawn = { x: 0, y: 15, z: 0 }
-                } else if (level === 4){
-                    spawn = { x: 1, y: 1.5, z: 42 }
-                } else if (level === 5){
-                    spawn = { x: 1, y: 1.5, z: 42 }
-                }
-
                 data = {
                     blocks: filteredBlocks,
-                    spawnPoint: spawn // valor por defecto si no viene en JSON
+                    spawnPoint: spawnByLevel[level] || { x: 5, y: 1.5, z: 5 }
                 };
             }
 
@@ -574,6 +584,33 @@ export default class World {
 
             this.resetRobotPosition(spawnPoint);
             console.log(`✅ Nivel ${level} cargado con spawn en`, spawnPoint);
+
+            // 🕳️ Eliminar suelo genérico en niveles con pozos sin fondo
+            if (this.floor) {
+                const hasOwnFloor = level >= 4;
+                this.floor.mesh.visible = !hasOwnFloor;
+                const physicsWorld = this.experience.physics.world;
+                if (hasOwnFloor) {
+                    if (this.floor.body && physicsWorld.bodies.includes(this.floor.body)) {
+                        physicsWorld.removeBody(this.floor.body);
+                        this.floor.body = null;
+                    }
+                    console.log(`🟫 Floor genérico eliminado (visual + físico) para nivel ${level}`);
+                } else {
+                    if (!this.floor.body) {
+                        // Recrear body si fue eliminado en nivel anterior
+                        this.floor.setPhysics();
+                    }
+                    console.log(`🟫 Floor genérico activo para nivel ${level}`);
+                }
+            }
+
+            // 👾 Spawn enemies for the current level (Skeleton lvl1, Ghost lvl2-5)
+            const enemiesCountEnv = parseInt(import.meta.env.VITE_ENEMIES_COUNT || '3', 10)
+            const enemiesCount = Number.isFinite(enemiesCountEnv) && enemiesCountEnv > 0 ? enemiesCountEnv : 3
+            setTimeout(() => {
+                this.spawnEnemies(enemiesCount)
+            }, 500)
         } catch (error) {
             console.error('❌ Error cargando nivel:', error);
         }
@@ -685,6 +722,11 @@ export default class World {
             });
             this.scene.remove(this.discoRaysGroup);
             this.discoRaysGroup = null;
+        }
+
+        if (this.finalPrizeParticles) {
+            this.finalPrizeParticles.dispose();
+            this.finalPrizeParticles = null;
         }
 
         /** Fin faro para limpianza */

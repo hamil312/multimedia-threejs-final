@@ -11,6 +11,15 @@
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
 const API      = `${BASE_URL}/api/auth`
 
+export const checkBackendHealth = async () => {
+  try {
+    const res = await fetch(BASE_URL, { signal: AbortSignal.timeout(3000) })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 // ── Helpers de almacenamiento ────────────────────────────────────────────────
 export const saveSession  = (token, user) => {
   localStorage.setItem('game_token', token)

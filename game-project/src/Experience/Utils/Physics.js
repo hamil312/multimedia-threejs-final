@@ -24,7 +24,6 @@ export default class Physics {
         this.obstacleMaterial = new CANNON.Material('obstacle')
         this.wallMaterial = new CANNON.Material('wall')
 
-        // ✅ Contactos más estables para evitar explosiones
         const robotObstacleContact = new CANNON.ContactMaterial(
             this.robotMaterial,
             this.obstacleMaterial,
@@ -57,13 +56,23 @@ export default class Physics {
 
         const robotFloorContact = new CANNON.ContactMaterial(
             this.robotMaterial,
-            this.floorMaterial,    // ← asignar este material al body del Floor
+            this.floorMaterial,
             {
-                friction: 0.1,     // sin fricción horizontal → tú la controlas
+                friction: 0.1,
                 restitution: 0.0
             }
         )
         this.world.addContactMaterial(robotFloorContact)
+
+        const obstacleObstacleContact = new CANNON.ContactMaterial(
+            this.obstacleMaterial,
+            this.obstacleMaterial,
+            {
+                friction: 0.3,
+                restitution: 0.0
+            }
+        )
+        this.world.addContactMaterial(obstacleObstacleContact)
     }
 
     update(delta) {

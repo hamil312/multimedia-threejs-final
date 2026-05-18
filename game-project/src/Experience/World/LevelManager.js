@@ -11,11 +11,6 @@ export default class LevelManager {
     
             this.experience.world.clearCurrentScene();
             this.experience.world.loadLevel(this.currentLevel);
-    
-            // Espera breve para que el nivel se cargue y luego reubicar al robot
-            setTimeout(() => {
-                this.experience.world.resetRobotPosition({ x: -17, y: 1.5, z: -67 }) //  Ajusta esta coordenada según el mundo nuevo
-            }, 1000)
         }
     }
     

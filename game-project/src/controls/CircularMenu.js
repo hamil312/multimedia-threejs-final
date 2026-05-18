@@ -25,11 +25,15 @@ export default class CircularMenu {
       musicVol:      75,
       sfxVol:        50,
       fontSize:      1.2,
-      keyboardHints: true
+      keyboardHints: true,
+      musicOn:       false
     }
 
     this._speechSynth = window.speechSynthesis || null
     this._subTimer    = null
+
+    // callback de audio desde Experience
+    this._onAudioToggle = onAudioToggle
 
     this._injectStyles()
     this._buildHUD()
@@ -148,13 +152,13 @@ export default class CircularMenu {
     const levelBlock = document.createElement('div')
     levelBlock.id = 'hud-level-block'
     levelBlock.setAttribute('role','status'); levelBlock.setAttribute('aria-live','polite')
-    levelBlock.setAttribute('aria-atomic','true'); levelBlock.setAttribute('aria-label','Nivel de exploración: 1 de 2')
+    levelBlock.setAttribute('aria-atomic','true'); levelBlock.setAttribute('aria-label','Nivel de exploración: 1 de 5')
     levelBlock.style.cssText = 'padding:12px 18px 14px;display:flex;flex-direction:column;gap:5px;'
     levelBlock.innerHTML = `
       <span id="hud-lbl-nivel" style="font-size:10px;letter-spacing:3px;color:var(--hud-mid);font-family:var(--hud-body);">EXPLORACIÓN</span>
       <div style="display:flex;align-items:baseline;gap:7px;">
         <span id="hud-level-num" style="font-size:32px;font-weight:600;color:var(--hud-light);line-height:1;">1</span>
-        <span id="hud-level-den" style="font-size:16px;color:var(--hud-mid);">/ 2</span>
+        <span id="hud-level-den" style="font-size:16px;color:var(--hud-mid);">/ 5</span>
       </div>
       <div style="position:relative;margin-top:3px;">
         <div style="height:6px;background:var(--hud-border);border-radius:3px;overflow:hidden;">
@@ -286,14 +290,18 @@ export default class CircularMenu {
 
     // Sección 1: Audio
     this._buildSection(panel, '1 · AUDIO', [
+      this._makeToggleRow('Música ambiente','hud-sw-music',this._a11y.musicOn, val => {
+        this._a11y.musicOn = val
+        if (this._onAudioToggle) this._onAudioToggle()
+      }),
+      this._makeSliderRow('Vol. música','hud-vol-music',this._a11y.musicVol, val => {
+        this._a11y.musicVol = val
+        this._setAmbientVolume(val / 100)
+      }),
       this._makeToggleRow('Subtítulos / voz asistida','hud-sw-subtitles',this._a11y.subtitlesOn, val => {
         this._a11y.subtitlesOn = val
         if (!val) this._hideSubtitle()
         else this._showSubtitleDirect('Voz asistida activada', 2500)
-      }),
-      this._makeSliderRow('Música','hud-vol-music',this._a11y.musicVol, val => {
-        this._a11y.musicVol = val
-        this._setAmbientVolume(val / 100)
       }),
       this._makeSliderRow('Efectos','hud-vol-sfx',this._a11y.sfxVol, val => {
         this._a11y.sfxVol = val

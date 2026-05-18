@@ -6,7 +6,7 @@
     "baked_lev1",
     "coin_structure_diagonal_lev1",
     "coin_structure_detailed_lev1",
-    "bigrock4.001_lev1.004",
+    "bigrock4.001.004_lev1",
     "bigrock5.001_lev1",
     "bigrock4.002_lev1",
     "bigrock5.002_lev1",
@@ -117,5 +117,7 @@
     "wall-broken.002_lev1",
     "road.007_lev1",
     "windmill_lev1",
-    "coin_structure_diagonal.003_lev1"
+    "coin_structure_diagonal.003_lev1",
+    "plane.001_lev1.001",
+    "plane.001_lev1"
 ]

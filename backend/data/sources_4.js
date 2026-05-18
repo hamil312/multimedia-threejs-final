@@ -375,9 +375,19 @@ export const sources = [
         "path": "/models/toycar/floor_lev4.glb"
     },
     {
+        "name": "plane.001_lev4",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev4.glb"
+    },
+    {
         "name": "plane_lev1_lev4",
         "type": "gltfModel",
         "path": "/models/toycar/plane_lev1_lev4.glb"
+    },
+    {
+        "name": "plane_lev4",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane_lev4.glb"
     },
     {
         "name": "spikes.001_lev4",

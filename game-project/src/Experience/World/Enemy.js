@@ -14,9 +14,9 @@ export default class Enemy {
         this.playerRef = playerRef
 
         // CONFIGURACIÓN
-        this.speed = 1
+        this.speed = 0.75
         this.attackDistance = 1.2   
-        this.attackCooldown = 1000  
+        this.attackCooldown = 2000  
         this.lastAttackTime = 0
 
         this.setModel(position)
@@ -31,7 +31,7 @@ export default class Enemy {
         this.model.scale.set(0.8, 0.8, 0.8)
 
         // 👇 ajuste de altura (clave)
-        this.model.position.set(0, -1, 0)
+        this.model.position.set(0, 0, 0)
 
         this.group = new THREE.Group()
         this.group.add(this.model)
@@ -49,15 +49,19 @@ export default class Enemy {
         const shape = new CANNON.Sphere(0.5)
 
         this.body = new CANNON.Body({
-            mass: 0,
+            mass: 5,
             shape,
             position: new CANNON.Vec3(
                 this.group.position.x,
                 this.group.position.y,
                 this.group.position.z
-            )
+            ),
+            fixedRotation: true,
+            linearDamping: 0.5,
+            material: this.physics.obstacleMaterial
         })
 
+        this.body.allowSleep = false
         this._spawnY = this.group.position.y
         this.physics.world.addBody(this.body)
     }
@@ -116,15 +120,17 @@ export default class Enemy {
             const nx = dx / distance
             const nz = dz / distance
 
-            this.body.position.x += nx * this.speed * delta
-            this.body.position.z += nz * this.speed * delta
-            this.body.position.y = this._spawnY
+            this.body.velocity.x = nx * this.speed * 10
+            this.body.velocity.z = nz * this.speed * 10
+            this.body.velocity.y = this.body.velocity.y * 0.1
 
             const angle = Math.atan2(nx, nz)
             this.group.rotation.y = angle
 
             this.playAnimation(this.animation.walkAction || this.animation.idleAction)
         } else {
+            this.body.velocity.x *= 0.5
+            this.body.velocity.z *= 0.5
             this.attack()
         }
     }

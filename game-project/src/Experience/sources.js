@@ -24,7 +24,7 @@ export default [
     {
         name: 'foxModel',
         type: 'gltfModel',
-        path: '/models/Fox/glTF/Fox.gltf'
+        path: '/models/Fox/glTF/Fox.glb'
     },
     {
         name: 'robotModel',
@@ -35,6 +35,11 @@ export default [
         name: 'enemyModel',
         type: 'gltfModel',
         path: '/models/Enemy/Skeleton.glb'
+    },
+    {
+        name: 'ghostModel',
+        type: 'gltfModel',
+        path: '/models/Enemy/Ghost Skull.glb'
     },
     {
         "name": "baked_lev1",
@@ -137,9 +142,9 @@ export default [
         "path": "/models/toycar/bigrock4.001.003_lev1.glb"
     },
     {
-        "name": "bigrock4.001_lev1.004",
+        "name": "bigrock4.001.004_lev1",
         "type": "gltfModel",
-        "path": "/models/toycar/bigrock4.001_lev1.004.glb"
+        "path": "/models/toycar/bigrock4.001.004_lev1.glb"
     },
     {
         "name": "bigrock4.001_lev1",
@@ -375,6 +380,16 @@ export default [
         "name": "floor_lev1",
         "type": "gltfModel",
         "path": "/models/toycar/floor_lev1.glb"
+    },
+    {
+        "name": "plane.001_lev1.001",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev1.001.glb"
+    },
+    {
+        "name": "plane.001_lev1",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev1.glb"
     },
     {
         "name": "plane_lev1",
@@ -900,6 +915,16 @@ export default [
         "name": "pallet_lev2",
         "type": "gltfModel",
         "path": "/models/toycar/pallet_lev2.glb"
+    },
+    {
+        "name": "plane.001_lev2",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev2.glb"
+    },
+    {
+        "name": "plane_lev2",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane_lev2.glb"
     },
     {
         "name": "planks_lev2",
@@ -2622,6 +2647,16 @@ export default [
         "path": "/models/toycar/overhang-round-railing.002_lev3.glb"
     },
     {
+        "name": "plane.001_lev3",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev3.glb"
+    },
+    {
+        "name": "plane_lev3",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane_lev3.glb"
+    },
+    {
         "name": "pulley-crate.001_lev3",
         "type": "gltfModel",
         "path": "/models/toycar/pulley-crate.001_lev3.glb"
@@ -3572,14 +3607,19 @@ export default [
         "path": "/models/toycar/door_lev4.glb"
     },
     {
-        "name": "floor_lev4",
+        "name": "plane.001_lev4",
         "type": "gltfModel",
-        "path": "/models/toycar/floor_lev4.glb"
+        "path": "/models/toycar/plane.001_lev4.glb"
     },
     {
         "name": "plane_lev1_lev4",
         "type": "gltfModel",
         "path": "/models/toycar/plane_lev1_lev4.glb"
+    },
+    {
+        "name": "plane_lev4",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane_lev4.glb"
     },
     {
         "name": "spikes.001_lev4",
@@ -4497,14 +4537,29 @@ export default [
         "path": "/models/toycar/door_lev5.glb"
     },
     {
-        "name": "floor_lev5",
-        "type": "gltfModel",
-        "path": "/models/toycar/floor_lev5.glb"
-    },
-    {
         "name": "lid_lev5",
         "type": "gltfModel",
         "path": "/models/toycar/lid_lev5.glb"
+    },
+    {
+        "name": "plane.001_lev5",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.001_lev5.glb"
+    },
+    {
+        "name": "plane.002_lev5",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.002_lev5.glb"
+    },
+    {
+        "name": "plane.003_lev5",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane.003_lev5.glb"
+    },
+    {
+        "name": "plane_lev5.001",
+        "type": "gltfModel",
+        "path": "/models/toycar/plane_lev5.001.glb"
     },
     {
         "name": "plane_lev5",

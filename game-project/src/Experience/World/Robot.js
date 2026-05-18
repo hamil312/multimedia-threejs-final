@@ -20,6 +20,7 @@ export default class Robot {
         this.grounded = true
         this.gravity = -20
         this.groundY = 0.0
+        this.canJump = true
 
         this.setModel()
         this.setSounds()
@@ -123,7 +124,6 @@ export default class Robot {
     }
 
     update() {
-        // Si el robot está muerto (body=null o animación death activa), no actualizar
         if (!this.body) return
         if (this.animation.actions.current === this.animation.actions.death) return
 
@@ -131,34 +131,34 @@ export default class Robot {
         this.animation.mixer.update(delta)
 
         const keys = this.keyboard.getState()
-        const turnSpeed = 2.5
+        const turnSpeed = 4.5
         let isMoving = false
         let isRunning = false
         let maxSpeed = 7
 
-        // 1. Rotación primero
+        const isGrounded = Math.abs(this.body.velocity.y) < 0.2
+
+        if (keys.space && isGrounded && this.canJump) {
+            this.body.velocity.y = 7.5
+            this.animation.play('jump')
+            this.canJump = false
+        }
+        if (isGrounded && !keys.space) {
+            this.canJump = true
+        }
+
         if (keys.left) {
             this.group.rotation.y += turnSpeed * delta
-            this.body.quaternion.setFromEuler(0, this.group.rotation.y, 0)
         }
         if (keys.right) {
             this.group.rotation.y -= turnSpeed * delta
-            this.body.quaternion.setFromEuler(0, this.group.rotation.y, 0)
         }
-    
+
+        this.body.quaternion.setFromEuler(0, this.group.rotation.y, 0)
+
         const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.group.quaternion)
 
-        // 3. Detectar si está en el suelo por velocidad vertical cercana a 0
-        //    (Cannon resuelve esto solo con el cuerpo dinámico)
-        const isGrounded = Math.abs(this.body.velocity.y) < 0.2
-
-        // 4. Salto — Cannon aplica la gravedad, solo lanzamos impulso
-        if (keys.space && isGrounded) {
-            this.body.velocity.y = 7.5  // velocidad vertical directa
-            this.animation.play('jump')
-        }
-
-        if(keys.shift) {
+        if (keys.shift) {
             maxSpeed = 12
             isRunning = true
         } else {
@@ -166,7 +166,6 @@ export default class Robot {
             isRunning = false
         }
 
-        // 5. Movimiento horizontal — sobreescribimos X y Z, Cannon conserva Y
         if (keys.up) {
             this.body.velocity.x = forward.x * maxSpeed
             this.body.velocity.z = forward.z * maxSpeed
@@ -176,29 +175,25 @@ export default class Robot {
             this.body.velocity.z = -forward.z * maxSpeed
             isMoving = true
         } else {
-            // Frenar horizontalmente sin tocar Y (la gravedad sigue actuando)
             this.body.velocity.x *= 0.85
             this.body.velocity.z *= 0.85
         }
 
-        // 6. Reubicación emergencia
         if (this.body.position.y < -10 || this.body.position.y > 40) {
             this.body.position.set(0, 30, 0)
             this.body.velocity.set(0, 0, 0)
         }
 
-        // 7. Animaciones
-        if (isMoving && this.animation.actions.current !== this.animation.actions.walking && this.animation.actions.current !== this.animation.actions.run) {
-            this.animation.play('walking')
-        } else if (!isMoving
-            && this.animation.actions.current !== this.animation.actions.idle
-            && this.animation.actions.current !== this.animation.actions.jump) {
+        if (this.animation.actions.current === this.animation.actions.jump && isGrounded && this.canJump) {
             this.animation.play('idle')
-        } else if (isRunning && this.animation.actions.current !== this.animation.actions.run) {
+        } else if (isMoving && isRunning && this.animation.actions.current !== this.animation.actions.run) {
             this.animation.play('run')
+        } else if (isMoving && !isRunning && this.animation.actions.current !== this.animation.actions.walking) {
+            this.animation.play('walking')
+        } else if (!isMoving && this.animation.actions.current !== this.animation.actions.idle && this.animation.actions.current !== this.animation.actions.jump) {
+            this.animation.play('idle')
         }
 
-        // 8. Sincronizar visual con física (Cannon mueve el body, tú lees la posición)
         this.group.position.copy(this.body.position)
     }
 
