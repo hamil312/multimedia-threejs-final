@@ -7,11 +7,12 @@ title Diagrama de Contexto C4 — Videojuego 3D
 
 Person(player, "Jugador", "Usuario que juega, recolecta monedas, evita enemigos y completa niveles")
 
-System_Boundary(game, "Videojuego 3D") {
-  System(game_sys, "Blender Three.js + MongoDB", "Plataforma de juego 3D con física, autenticación JWT, multijugador y persistencia de puntajes")
-}
+System(game_sys, "Videojuego 3D", "Plataforma de juego 3D con física 3D, autenticación JWT opcional, multijugador y persistencia de puntajes")
+
+SystemDb(mongodb, "MongoDB", "Base de datos NoSQL que almacena usuarios, bloques, jugadores y puntajes")
 
 Rel(player, game_sys, "Juega, avanza niveles, guarda progreso", "HTTPS/WebSocket")
+Rel(game_sys, mongodb, "Persiste y consulta datos", "MongoDB Wire Protocol")
 
 SHOW_LEGEND()
 
