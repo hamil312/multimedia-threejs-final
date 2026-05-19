@@ -1,6 +1,6 @@
 # Blender Three.js Mongo — Juego 3D
 
-Juego de plataformas 3D desarrollado con **React**, **Three.js**, **cannon-es** (física) y **MongoDB**. Los modelos se exportan desde Blender y se cargan dinámicamente por nivel. Incluye autenticación JWT opcional, multijugador básico con Socket.io y un compañero zorro que sigue al jugador.
+Juego de plataformas 3D desarrollado con **React**, **Three.js**, **cannon-es** (física) y **MongoDB**. Los modelos se exportan desde Blender y se cargan por nivel. Incluye autenticación JWT opcional, y compañero zorro que sigue al jugador.
 
 ---
 
