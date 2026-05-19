@@ -1,65 +1,106 @@
-## Proyecto Final UCC – Backend + Game (React + Three.js)
+# Blender Three.js Mongo — Juego 3D
 
-Monorepo con dos aplicaciones principales:
-
-- `backend`: API REST y servidor WebSocket (Socket.io) con Node.js, Express y MongoDB.
-- `game-project`: Frontend 3D con React, Vite y Three.js.
+Juego de plataformas 3D desarrollado con **React**, **Three.js**, **cannon-es** (física) y **MongoDB**. Los modelos se exportan desde Blender y se cargan dinámicamente por nivel. Incluye autenticación JWT opcional, multijugador básico con Socket.io y un compañero zorro que sigue al jugador.
 
 ---
 
-### Requisitos
+## Funcionalidades
+
+| Funcionalidad | Detalle |
+|---|---|
+| **5 niveles** | Escenarios únicos cargados desde MongoDB o JSON local. Cada nivel requiere 5 monedas (6 en niveles 4–5) para desbloquear la salida. |
+| **Teletransporte entre niveles** | Al completar un nivel se limpia la escena y se carga el siguiente con el spawn point correcto. |
+| **Sistema de físicas** | Colisiones con cannon-es: jugador (cilindro + semiesferas), enemigos, escenario. Suelo genérico desactivado en niveles 4–5 (pozos sin fondo). |
+| **Enemigos** | **Esqueleto** (nivel 1): persigue al jugador, colisiona con paredes y otros esqueletos. **Fantasma** (niveles 2–5): vuela, atraviesa paredes, daña por proximidad. |
+| **Compañero zorro** | Sigue al jugador con interpolación suave; se teletransporta si queda muy lejos. Animaciones por nombre. |
+| **Partículas del portal** | Vórtice horizontal multicolor con 250 partículas en modo AdditiveBlending, persistente hasta cambiar de nivel. |
+| **HUD accesible (WCAG)** | Menú circular con controles de audio, subtítulos/voz asistida, alto contraste, tamaño de texto, pistas de teclado. Sliders de volumen. |
+| **Ajustes del personaje** | Movimiento WASD, salto (barra espaciadora), carrera (Shift), giro suave al correr. Animaciones idle/walking/running/jump/death/dance. |
+| **Autenticación JWT** | Registro e inicio de sesión con tokens. Si el backend no responde, modo anónimo offline automático. |
+| **Guardado en MongoDB** | Puntaje, monedas, tiempo y progreso por nivel se persisten vía API REST. |
+| **Multijugador (Socket.io)** | Sincronización de posición/rotación entre jugadores en tiempo real. |
+| **Audio ambiente** | Bucle ambiental con Web Audio API, activado al iniciar partida, con toggle en menú de accesibilidad. |
+
+---
+
+## Estructura del proyecto
+
+```
+Blender_Threejs_Mongo-main/
+├─ backend/                  # API REST + Socket.io
+│  ├─ app.js                 # Entry point (Express + Socket.io + MongoDB)
+│  ├─ controllers/           # blockController, playerController, authController
+│  ├─ models/                # Block, Player, Score, User (Mongoose)
+│  ├─ routes/                # blockRoutes, playerRoutes, authRoutes
+│  ├─ scripts/               # Utilidades (sync, seed, generate sources)
+│  └─ data/                  # JSON de modelos y posiciones
+│
+├─ game-project/             # Frontend 3D (React + Vite + Three.js)
+│  ├─ public/
+│  │  ├─ data/               # toy_car_blocks.json (fallback local)
+│  │  ├─ config/             # precisePhysicsModels.json
+│  │  ├─ models/             # Modelos GLB (robot, enemies, zorro, escenario)
+│  │  └─ sounds/             # Efectos de sonido
+│  └─ src/
+│     ├─ Experience/         # Núcleo 3D
+│     │  ├─ World/           # Robot, Enemy, Ghost, Fox, Floor, LevelManager
+│     │  ├─ Utils/           # Physics, PhysicsShapeFactory, Resources, Time
+│     │  ├─ Camera/          # Tercera persona, visión cenital
+│     │  └─ Renderer/        # Configuración de WebGL
+│     ├─ controls/           # CircularMenu (HUD accesible)
+│     ├─ loaders/            # ToyCarLoader (procesa bloques del nivel)
+│     ├─ auth/               # authService, useAuth
+│     └─ network/            # SocketManager
+```
+
+---
+
+## Requisitos
 
 - Node.js 18+ y npm
 - MongoDB (local o Atlas)
 
 ---
 
-### Estructura
+## Variables de entorno
 
-```
-Projecto_final_v1/
-├─ backend/            # API REST + Socket.io + scripts y datos
-└─ game-project/       # Frontend 3D (React + Vite + Three.js)
-```
-
----
-
-### Variables de entorno
-
-Crear `backend/.env` con:
+### Backend (`backend/.env`)
 
 ```env
 MONGO_URI=mongodb://127.0.0.1:27017/threejs_blocks
 PORT=3001
-API_URL=http://localhost:3001/api/blocks/batch
+JWT_SECRET=tu_secreto_jwt
 ```
 
-Opcionalmente, en `game-project/.env` (o `.env.local`) para apuntar al backend:
+### Frontend (`game-project/.env.local`)
 
 ```env
 VITE_API_URL=http://localhost:3001
 VITE_ENEMIES_COUNT=1
+VITE_BACKEND_URL=http://localhost:3001
 ```
 
 ---
 
-### Instalación
+## Instalación
 
-Ejecutar en cada proyecto:
+### Backend
 
 ```bash
-# Backend
 cd backend
 npm install
+```
 
-# Frontend
-cd ../game-project
+### Frontend
+
+```bash
+cd game-project
 npm install
 ```
 
 ---
 
-### Ejecución en desarrollo
+## Ejecución en desarrollo
 
 Usa dos terminales:
 
@@ -67,102 +108,60 @@ Usa dos terminales:
 # Terminal 1: Backend
 cd backend
 node app.js
-# Servirá en http://localhost:3001
+# → http://localhost:3001
 
 # Terminal 2: Frontend
 cd game-project
 npm run dev
-# Vite en http://localhost:5173 (con --host accesible en LAN)
-```
-
-Si definiste `VITE_API_URL`, el frontend consumirá la API del backend en ese origen.
-
----
-
-### API REST (backend)
-
-Base URL: `http://localhost:3001/api/blocks`
-
-- `GET /api/blocks?level=1` → Lista bloques por nivel (campos: `name, x, y, z, level`).
-- `POST /api/blocks` → Crea un bloque. Body JSON: `{ name, x, y, z, level }`.
-- `POST /api/blocks/batch` → Inserta múltiples bloques. Body: `[{ name, x, y, z, level }, ...]`.
-- `GET /api/blocks/ping` → Healthcheck (`{ message: "pong" }`).
-
-Autenticación: no requerida en desarrollo. CORS habilitado para orígenes del frontend.
-
----
-
-### WebSocket (multijugador)
-
-Servidor Socket.io en el mismo puerto del backend (`http://localhost:3001`). Eventos principales:
-
-- `new-player` → Registra e informa a otros jugadores.
-- `update-position` → Broadcast de posición/rotación.
-- `remove-player` → Notifica desconexiones.
-- `players-update` y `existing-players` → Sincronización de estado.
-
-Cliente de ejemplo:
-
-```js
-import { io } from 'socket.io-client'
-const socket = io('http://localhost:3001')
+# → http://localhost:5173
 ```
 
 ---
 
-### Datos y scripts útiles (backend)
+## API REST
 
-- `backend/scripts/` → utilidades para generar/ sincronizar datos (`sync_blocks.js`, `generate_sources.js`, etc.).
-- `backend/data/` → JSON de modelos y posiciones.
-- `node seed.js` → carga de datos iniciales (opcional).
-
-Consulta `backend/README.md` para detalles avanzados (niveles, exportación desde Blender, etc.).
-
----
-
-### Frontend (game-project)
-
-- Arranque: `npm run dev` (Vite). Ajusta `VITE_API_URL` si el backend corre en otra máquina/puerto.
-- Tecnologías: React 19, Three.js, cannon-es, GSAP, Howler, Socket.io Client.
-
-Estructura relevante:
-
-```
-game-project/
-├─ public/            # assets (modelos, texturas, sonidos)
-└─ src/
-   ├─ Experience/     # Núcleo 3D (cámaras, mundo, física, recursos)
-   ├─ loaders/        # Cargadores (p.ej., ToyCarLoader)
-   ├─ network/        # SocketManager (cliente)
-   └─ controls/       # Controles (móvil/teclado)
-```
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/api/blocks?level=N` | Bloques de un nivel |
+| `POST` | `/api/blocks` | Crear un bloque |
+| `POST` | `/api/blocks/batch` | Insertar múltiples bloques |
+| `GET` | `/api/blocks/ping` | Healthcheck |
+| `POST` | `/api/auth/register` | Registro de usuario |
+| `POST` | `/api/auth/login` | Inicio de sesión |
+| `GET` | `/api/auth/me` | Perfil del usuario autenticado |
+| `POST` | `/api/players/score` | Guardar puntaje y progreso |
 
 ---
 
-### Desarrollo simultáneo y puertos
+## WebSocket (Socket.io)
 
-- Backend: `3001`
-- Frontend (Vite): `5173`
+Mismo puerto del backend. Eventos:
 
-Si pruebas en red local, levanta Vite con `npm run dev -- --host` y usa `VITE_API_URL` apuntando a la IP LAN del backend, por ejemplo:
-
-```env
-VITE_API_URL=http://192.168.1.100:3001
-```
+- `new-player` — Registra jugador
+- `update-position` — Broadcast de posición/rotación
+- `remove-player` — Notifica desconexión
+- `players-update`, `existing-players` — Sincronización de estado
 
 ---
 
-### Solución de problemas
+## Despliegue
 
-- Asegura que MongoDB esté corriendo y `MONGO_URI` sea accesible.
-- Si el frontend no carga datos, verifica `VITE_API_URL` y la consola del navegador.
-- CORS: el backend permite `origin: '*'` vía Socket.io y `cors()` en Express para desarrollo.
+Solo el frontend se despliega en **Vercel**:
+
+1. Conecta el repositorio en [vercel.com](https://vercel.com)
+2. Configura las variables de entorno en Vercel:
+   - `VITE_API_URL` → URL del backend en producción
+   - `VITE_BACKEND_URL` → misma URL
+3. El backend se despliega por separado (Railway, Render, Fly.io, o servidor propio).
+
+El frontend se despliega automáticamente al hacer push a la rama principal.
 
 ---
 
-### Licencia y autoría
+## Licencia
 
-- Autor: Gustavo Willyn Sánchez Rodríguez — `guswillsan@gmail.com`
-- Licencia: ISC (verifica archivos de licencia si aplica).
+ISC
 
+## Autor
 
+Gustavo Willyn Sánchez Rodríguez — guswillsan@gmail.com
