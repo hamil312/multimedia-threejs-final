@@ -1,7 +1,7 @@
 import * as CANNON from 'cannon-es'
 import * as THREE from 'three'
 
-export function createBoxShapeFromModel(model, scaleFactor = 0.6) { //reducir un poco el tamaño de la caja helps debug
+export function createBoxShapeFromModel(model, scaleFactor = 0.6) {
     const bbox = new THREE.Box3().setFromObject(model)
     const size = new THREE.Vector3()
     bbox.getSize(size)
