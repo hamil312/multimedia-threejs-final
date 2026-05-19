@@ -1,0 +1,28 @@
+@startuml C4_Container
+!include <C4/C4_Container.puml>
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_TOP_DOWN()
+
+title Diagrama de Contenedores C4 — Videojuego 3D
+
+Person(player, "Jugador", "Usuario del juego")
+
+System_Boundary(game, "Videojuego 3D") {
+
+  Container(spa, "Single Page Application", "React 19 + Vite + Three.js + cannon-es", "Renderiza el mundo 3D, maneja físicas, animaciones, HUD y entrada del usuario. Se despliega en Vercel.")
+
+  Container(api, "API REST + WebSocket", "Node.js + Express + Socket.io", "Gestiona autenticación JWT, CRUD de bloques por nivel, guardado de puntajes, sincronización multijugador en tiempo real.")
+
+  ContainerDb(db, "Base de Datos", "MongoDB (Mongoose)", "Almacena usuarios, bloques por nivel, jugadores y puntajes.")
+}
+
+Rel(player, spa, "Interactúa con el juego", "HTTPS, teclado, ratón, táctil")
+Rel(spa, api, "Solicita bloques, envía puntajes, autentica", "REST API (HTTP JSON)")
+Rel(api, db, "Persiste y consulta datos", "MongoDB Wire Protocol")
+
+Rel(spa, api, "Sincronización multijugador", "WebSocket (Socket.io)")
+
+SHOW_LEGEND()
+
+@enduml

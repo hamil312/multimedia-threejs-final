@@ -1,0 +1,84 @@
+@startuml C4_Component
+!include <C4/C4_Component.puml>
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_TOP_DOWN()
+
+title Diagrama de Componentes C4 — Frontend y Backend
+
+Person(player, "Jugador", "Usuario del juego")
+
+System_Boundary(frontend, "Single Page Application (Vercel)") {
+
+  Component(exp, "Experience", "Clase singleton", "Orquestador principal: crea Scene, Physics, Camera, Renderer, World, Resources, Time. Loop render/update.")
+
+  Component(world, "World", "Clase", "Gestiona la escena del nivel: carga bloques, spawnea enemigos, zorro, monedas, premio final, partículas. loadLevel(), saveScoreToDatabase().")
+
+  Component(robot, "Robot", "Clase", "Jugador: cuerpo físico cannon-es, modelo 3D animado, movimiento WASD, salto, daño, muerte, revive.")
+
+  Component(enemies, "Enemy / Ghost", "Clase", "Enemigos: esqueleto (físicas, nivel 1) y fantasma (posición directa, niveles 2-5). Persecución, ataque por contacto/distancia.")
+
+  Component(fox, "Fox", "Clase", "Compañero zorro: sigue al robot con lerp, animaciones por nombre, se teletransporta si se aleja.")
+
+  Component(physics, "Physics", "Clase", "Mundo cannon-es: gravedad, materiales de contacto (robot, obstacle, wall, floor). step() y sincronización con Three.js.")
+
+  Component(ui, "CircularMenu", "Clase", "HUD accesible WCAG 2.1: timer, nivel, puntos, corazones, menú de accesibilidad (audio, subtítulos, contraste, tamaño texto).")
+
+  Component(auth, "Auth (authService + useAuth)", "Módulo React", "checkBackendHealth(), login, register, verifySession. Fallback anónimo offline.")
+
+  Component(loader, "ToyCarLoader", "Clase", "Carga y procesa bloques desde API o JSON local. Crea modelos 3D, físicas y monedas.")
+
+  Component(net, "SocketManager", "Clase", "Cliente Socket.io: envía/reibe posición, spawnea clones remotos con animación y etiquetas.")
+
+  Component(vr, "VRIntegration", "Clase", "WebXR: botón VR, control por láser, recolección de premios, consola 3D.")
+
+  Component(fp, "FinalPrizeParticles", "Clase", "250 partículas en vórtice horizontal multicolor con AdditiveBlending.")
+}
+
+System_Boundary(backend, "API REST + WebSocket (Node.js)") {
+
+  Component(blocks, "Block Controller", "Express route", "GET /api/blocks?level=N, POST /api/blocks, POST /api/blocks/batch (desde Blender).")
+
+  Component(auth_ctrl, "Auth Controller", "Express route", "POST /register, POST /login, GET /me (JWT).")
+
+  Component(score_ctrl, "Player Controller", "Express route", "POST /api/players/score: guarda historial Score y acumulado Player.")
+
+  Component(socket, "Socket.io Server", "Eventos", "new-player, update-position, remove-player, players-update, existing-players.")
+
+  Component(mw, "authMiddleware", "Middleware", "verifyToken: decodifica JWT, adjunta req.user.")
+}
+
+System_Boundary(db, "MongoDB") {
+  ComponentDb(m_users, "User", "Mongoose Model", "username, email (bcrypt), createdAt.")
+  ComponentDb(m_blocks, "Block", "Mongoose Model", "name, x, y, z, level, role (default / finalPrize).")
+  ComponentDb(m_players, "Player", "Mongoose Model", "playerId, coins, totalScore, bestTime, levelscores[].")
+  ComponentDb(m_scores, "Score", "Mongoose Model", "playerId, coins, totalScore, level, time, createdAt.")
+}
+
+Rel(player, ui, "Usa", "teclado/ratón/táctil")
+Rel(player, robot, "Controla", "WASD + Shift + Espacio")
+Rel(exp, world, "Orquesta")
+Rel(world, robot, "Posiciona y reinicia")
+Rel(world, enemies, "Spawn por nivel")
+Rel(world, fox, "Crea y actualiza")
+Rel(world, physics, "Simula colisiones")
+Rel(world, loader, "Carga escenario")
+Rel(world, fp, "Muestra portal")
+Rel(robot, physics, "Cuerpo físico")
+Rel(enemies, physics, "Colisiones (esqueleto)")
+Rel(world, net, "Comunicación multijugador")
+Rel(exp, auth, "Autenticación")
+Rel(exp, vr, "Realidad virtual")
+Rel(auth, auth_ctrl, "Login / Register / Verify", "REST JSON")
+Rel(world, blocks, "GET bloques del nivel", "REST JSON")
+Rel(world, score_ctrl, "POST puntaje", "REST JSON")
+Rel(net, socket, "WebSocket", "Socket.io")
+Rel(blocks, m_blocks, "CRUD")
+Rel(score_ctrl, m_players, "Upsert")
+Rel(score_ctrl, m_scores, "Insert")
+Rel(auth_ctrl, m_users, "CRUD")
+Rel(auth_ctrl, mw, "Protege rutas")
+
+SHOW_LEGEND()
+
+@enduml

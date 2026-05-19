@@ -1,0 +1,416 @@
+@startuml Class_Diagram
+
+title Diagrama de Clases — Videojuego 3D
+
+' ── Estilo ──
+skinparam class {
+  BackgroundColor #FFFFEE
+  BorderColor #666600
+}
+
+' ════════════════════════════════════════════
+'  FRONTEND — Core
+' ════════════════════════════════════════════
+
+class Experience {
+  - instance: Experience
+  - scene: THREE.Scene
+  - physics: Physics
+  - world: World
+  - camera: Camera
+  - renderer: Renderer
+  - time: Time
+  - resources: Resources
+  - keyboard: KeyboardControls
+  - menu: CircularMenu
+  - tracker: GameTracker
+  - socketManager: SocketManager
+  - modal: ModalManager
+  - vrIntegration: VRIntegration
+  - isThirdPerson: boolean
+  + startGame()
+  + resetGame()
+  + resetGameToFirstLevel()
+  - update()
+  - resize()
+}
+
+class Time {
+  - delta: number
+  - elapsed: number
+  + on(event, callback)
+  + off(event, callback)
+}
+
+class Physics {
+  - world: CANNON.World
+  - robotMaterial: CANNON.Material
+  - obstacleMaterial: CANNON.Material
+  - wallMaterial: CANNON.Material
+  - floorMaterial: CANNON.Material
+  + update()
+  + obstacleObstacleContact()
+}
+
+class Resources {
+  - items: object
+  - loaded: number
+  - toLoad: number
+  + on('ready', callback)
+}
+
+class EventEmitter {
+  + on(name, fn)
+  + off(name, fn)
+  + trigger(name, ...args)
+}
+
+class KeyboardControls {
+  - keys: object
+  + getState(): { up, down, left, right, space, shift }
+}
+
+' ════════════════════════════════════════════
+'  WORLD
+' ════════════════════════════════════════════
+
+class World {
+  - floor: Floor
+  - environment: Environment
+  - robot: Robot
+  - fox: Fox
+  - enemies: Enemy | Ghost[]
+  - loader: ToyCarLoader
+  - levelManager: LevelManager
+  - thirdPersonCamera: ThirdPersonCamera
+  - ambientSound: AmbientSound
+  - finalPrizeParticles: FinalPrizeParticles
+  - points: number
+  - accumulatedPoints: number
+  - gameStarted: boolean
+  - finalPrizeActivated: boolean
+  + loadLevel(level)
+  + clearCurrentScene()
+  + spawnEnemies(level)
+  + saveScoreToDatabase()
+  + handlePlayerDeath()
+  + resetRobotPosition(spawn)
+  + startAmbientSound()
+  + toggleAudio()
+}
+
+class Robot {
+  - model: THREE.Group
+  - body: CANNON.Body
+  - group: THREE.Group
+  - animation.mixer: THREE.AnimationMixer
+  - animation.actions: object
+  - health: number
+  - points: number
+  - grounded: boolean
+  - canJump: boolean
+  - verticalVelocity: number
+  + update()
+  + takeDamage(amount)
+  + die()
+  + revive()
+  + syncHealthHUD()
+}
+
+class Enemy {
+  - model: THREE.Group
+  - body: CANNON.Body
+  - health: number
+  - speed: number
+  - attackCooldown: number
+  + update(delta)
+  + followPlayer()
+  + takeDamage(amount)
+  + destroy()
+}
+
+class Ghost {
+  - model: THREE.Group
+  - targetPosition: THREE.Vector3
+  - speed: number
+  - floatPhase: number
+  - attackCooldown: number
+  + update(delta)
+  + destroy()
+}
+
+class Fox {
+  - model: THREE.Group
+  - animation.mixer: THREE.AnimationMixer
+  - animation.actions: object
+  + update()
+}
+
+class Floor {
+  - mesh: THREE.Mesh
+  - body: CANNON.Body
+  + setPhysics(world)
+}
+
+class Environment {
+  - sunLight: THREE.DirectionalLight
+  - environmentMap: THREE.CubeTexture
+  + update()
+}
+
+class ThirdPersonCamera {
+  - camera: THREE.PerspectiveCamera
+  - offset: THREE.Vector3
+  + update()
+}
+
+class FirstPersonCamera {
+  - camera: THREE.PerspectiveCamera
+  + update()
+}
+
+class LevelManager {
+  - currentLevel: number
+  - totalLevels: number
+  + nextLevel()
+  + resetLevel()
+  + getCurrentLevelTargetPoints(): number
+}
+
+class Prize {
+  - model: THREE.Group
+  - role: string
+  + collect()
+}
+
+' ════════════════════════════════════════════
+'  UTILS
+' ════════════════════════════════════════════
+
+class FinalPrizeParticles {
+  - points: THREE.Points
+  - geometry: THREE.BufferGeometry
+  - count: number
+  - target: THREE.Vector3
+  - clock: THREE.Clock
+  + update()
+  + dispose()
+}
+
+class GameTracker {
+  - startTime: number
+  + getElapsedSeconds(): number
+  + showEndGameModal(bestTime)
+}
+
+class ModalManager {
+  + show({ icon, title, message, buttons, type })
+  + hide()
+}
+
+class Raycaster {
+  + addRandomObstacle()
+  + removeRandomObstacle(n)
+  + removeAllObstacles()
+}
+
+class Sound {
+  - howl: Howl
+  + play()
+  + stop()
+  + setVolume(v)
+}
+
+class AmbientSound {
+  - source: AudioBufferSourceNode
+  - gain: GainNode
+  - isPlaying: boolean
+  + start()
+  + stop()
+  + toggle()
+}
+
+class ToyCarLoader {
+  - prizes: Prize[]
+  + loadFromURL(url)
+  + _processBlocks(data, preciseModels)
+}
+
+' ════════════════════════════════════════════
+'  UI
+' ════════════════════════════════════════════
+
+class CircularMenu {
+  - _a11y: object
+  - _speechSynth: SpeechSynthesis
+  + setTimer(t)
+  + setStatus(s)
+  + setLevel(current, total)
+  + setProgress(pct)
+  + setHealth(hp, max)
+  + showSubtitle(text, duration)
+  + toggleMenu()
+  + destroy()
+}
+
+class MobileControls {
+  - directionVector: THREE.Vector2
+  - intensity: number
+  + simulateSpacebar()
+}
+
+' ════════════════════════════════════════════
+'  AUTH
+' ════════════════════════════════════════════
+
+class "authService" as authService {
+  + checkBackendHealth(): boolean
+  + register({ username, email, password })
+  + login({ email, password })
+  + verifySession()
+  + logout()
+  + getToken(): string
+  + getUser(): object
+}
+
+class "useAuth (hook)" as useAuth {
+  + user: object
+  + loading: boolean
+  + logout()
+}
+
+class AuthPage {
+  + onSuccess(user)
+}
+
+' ════════════════════════════════════════════
+'  NETWORK
+' ════════════════════════════════════════════
+
+class SocketManager {
+  - socket: Socket
+  + sendTransform(position, rotation)
+  + destroy()
+}
+
+class VRIntegration {
+  + setUpdateCallback(fn)
+}
+
+' ════════════════════════════════════════════
+'  BACKEND — Models (Mongoose)
+' ════════════════════════════════════════════
+
+class "User (Model)" as User {
+  - username: String
+  - email: String
+  - password: String (bcrypt)
+  - createdAt: Date
+  + comparePassword(candidate): boolean
+}
+
+class "Block (Model)" as Block {
+  - name: String
+  - x: Number
+  - y: Number
+  - z: Number
+  - level: Number
+  - role: String (default|finalPrize)
+}
+
+class "Player (Model)" as Player {
+  - playerId: String (unique)
+  - defaultCoins: Number
+  - finalPrizeCoins: Number
+  - totalScore: Number
+  - levelscores: [{ level, coinsCollected, timestamp }]
+  - bestTime: Number
+  - lastUpdated: Date
+}
+
+class "Score (Model)" as Score {
+  - playerId: String
+  - defaultCoins: Number
+  - finalPrizeCoins: Number
+  - totalScore: Number
+  - level: Number
+  - time: Number
+  - createdAt: Date
+}
+
+' ════════════════════════════════════════════
+'  BACKEND — Controllers & Middleware
+' ════════════════════════════════════════════
+
+class "authController" as AuthCtrl {
+  + register(req, res)
+  + login(req, res)
+  + me(req, res)
+}
+
+class "blockController" as BlockCtrl {
+  + getBlocks(req, res)
+  + addBlock(req, res)
+  + addMultipleBlocks(req, res)
+}
+
+class "playerController" as PlayerCtrl {
+  + saveScore(req, res)
+}
+
+class "authMiddleware" as AuthMW {
+  + verifyToken(req, res, next)
+}
+
+' ════════════════════════════════════════════
+'  RELACIONES
+' ════════════════════════════════════════════
+
+EventEmitter <|-- Time
+EventEmitter <|-- KeyboardControls
+EventEmitter <|-- Sizes
+EventEmitter <|-- Resources
+
+Experience *-- Time
+Experience *-- Physics
+Experience *-- World
+Experience *-- Resources
+Experience *-- KeyboardControls
+Experience *-- CircularMenu
+Experience *-- GameTracker
+Experience *-- SocketManager
+Experience *-- ModalManager
+Experience *-- VRIntegration
+
+World *-- Robot
+World *-- Floor
+World *-- Environment
+World *-- Fox
+World *-- LevelManager
+World *-- ThirdPersonCamera
+World *-- FirstPersonCamera
+World *-- AmbientSound
+World *-- ToyCarLoader
+World *-- FinalPrizeParticles
+World o-- Enemy
+World o-- Ghost
+World o-- Prize
+World --> LevelManager : consulta nivel actual
+
+ToyCarLoader --> Prize : crea
+ToyCarLoader --> Block : referencia datos
+
+Robot --> Physics : cuerpo cannon-es
+Enemy --> Physics : cuerpo cannon-es
+
+CircularMenu --> World : lee estado
+GameTracker --> World : lee puntos
+
+' Backend relationships
+AuthCtrl --> User : CRUD
+BlockCtrl --> Block : CRUD
+PlayerCtrl --> Player : upsert
+PlayerCtrl --> Score : insert
+AuthCtrl --> AuthMW : protege /me
+
+@enduml
