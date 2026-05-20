@@ -143,7 +143,7 @@ export default class World {
         if (this.defeatTriggered) return // Previene múltiples disparos
         this.defeatTriggered = true
 
-        this.saveScoreToDatabase()
+        this.saveScoreToDatabase(false)
             .then(() => {
                 console.log('💾 Puntaje guardado al morir')
             })
@@ -166,46 +166,41 @@ export default class World {
 
         this.experience.modal.show({
             icon: '💀',
-            message: '¡El enemigo te atrapó!\n¿Quieres intentarlo otra vez?',
+            message: '¡El enemigo te atrapó!',
             buttons: [
                 {
                     text: '🔁 Reintentar',
-                    onClick: () => this.experience.resetGameToFirstLevel()
-                },
-                {
-                    text: '❌ Salir',
                     onClick: () => this.experience.resetGame()
                 }
             ]
         })
     }
 
-    async saveScoreToDatabase() {
+    async saveScoreToDatabase(gameCompleted = false) {
         try {
             const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
     
-            // ✅ Usar el ID del usuario autenticado (viene del JWT decodificado en App.jsx)
             const gameUser = window.__gameUser
             const playerId = gameUser?.id || gameUser?._id || 'anonymous'
     
-            const currentPoints = Number(this.points)           || 0
-            const accumulated   = Number(this.accumulatedPoints) || 0
-            const totalScore    = accumulated + currentPoints
-            const bestTime      = this.experience?.tracker?.getElapsedSeconds?.() || 0
+            const currentPoints = Number(this.points) || 0
+            const accumulated = Number(this.accumulatedPoints) || 0
+            const totalScore = accumulated + currentPoints
+            const bestTime = this.experience?.tracker?.getElapsedSeconds?.() || 0
     
             const scoreData = {
                 playerId,
-                username:        gameUser?.username || 'anónimo',
-                defaultCoins:    currentPoints,
+                username: gameUser?.username || 'anónimo',
+                defaultCoins: currentPoints,
                 finalPrizeCoins: this.finalPrizeActivated ? 1 : 0,
                 totalScore,
-                level:           this.levelManager.currentLevel,
-                bestTime
+                level: this.levelManager.currentLevel,
+                bestTime,
+                gameCompleted  // ✅ NUEVO: flag para leaderboard
             }
     
             console.log('📤 Enviando puntos a MongoDB:', scoreData)
     
-            // ✅ Incluir el JWT en el header Authorization
             const token = localStorage.getItem('game_token')
             const headers = { 'Content-Type': 'application/json' }
             if (token) headers['Authorization'] = `Bearer ${token}`
@@ -213,24 +208,61 @@ export default class World {
             const response = await fetch(`${backendUrl}/api/players/score`, {
                 method: 'POST',
                 headers,
-                body:   JSON.stringify(scoreData)
+                body: JSON.stringify(scoreData)
             })
     
             if (!response.ok) {
                 const text = await response.text()
                 let errorData
-                try   { errorData = JSON.parse(text) }
+                try { errorData = JSON.parse(text) }
                 catch { errorData = text }
                 console.error("❌ Error del backend:", errorData)
                 throw new Error(`HTTP ${response.status}`)
             }
     
             const result = await response.json()
-            console.log('✅ Puntos guardados en MongoDB:', result)
+            
+            if (gameCompleted && result.leaderboardEntry) {
+                console.log('✅ ¡LEADERBOARD ACTUALIZADO! Puntos guardados:', result)
+                this.fetchLeaderboard()
+            } else if (!gameCompleted) {
+                console.log('✅ Puntos guardados (sin leaderboard - jugador murió):', result)
+            } else {
+                console.log('✅ Puntos guardados:', result)
+            }
+
             return result
     
         } catch (error) {
             console.error('❌ Error al guardar puntos:', error)
+        }
+    }
+
+    // ✅ NUEVO: Obtener y mostrar leaderboard
+    async fetchLeaderboard() {
+        try {
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+            
+            const response = await fetch(`${backendUrl}/api/players/leaderboard?limit=10`)
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`)
+            }
+
+            const data = await response.json()
+            console.log('🏆 Leaderboard obtenido:', data.leaderboard)
+
+            // Mostrar top 5 en consola
+            console.log('📊 TOP 5 JUGADORES:')
+            data.leaderboard.slice(0, 5).forEach(entry => {
+                const minutes = Math.floor(entry.bestTime / 60)
+                const seconds = Math.floor(entry.bestTime % 60)
+                console.log(`#${entry.rank} - ${entry.playerName}: ${minutes}m ${seconds}s (Score: ${entry.totalScore})`)
+            })
+
+            return data.leaderboard
+        } catch (error) {
+            console.error('❌ Error al obtener leaderboard:', error)
         }
     }
 
@@ -781,6 +813,4 @@ export default class World {
             }
         }
     }
-
-
 }
